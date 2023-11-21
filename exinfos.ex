@@ -1,0 +1,9 @@
+[INFOS]
+gaf=0
+title=Photo_Gallery
+image=description.gif
+description=description.rtf
+source=1
+typesite=0
+[OBJECT]
+Photo_Gallery.wwp=4096

@@ -1,0 +1,962 @@
+#To edit and compare internal_properties, use WINDEV integrated tools.
+#Internal properties refer to the properties of controls in windows, reports, etc.
+info :
+ name : SET_ManagePhotos
+ major_version : 28
+ minor_version : 0
+ type : 7
+ description : ""
+ subtype : 0
+procedure_set :
+ identifier : 0x141d883d1fad0a8c
+ internal_properties : CAAAAAgAAABGLu41kG7fjQV3iS4F72qmnKaNh5694reolNKIW0iw
+ code_elements :
+  type_code : 31
+  p_codes :
+   -
+     code : |1-
+      constant 
+      
+      	// Roles of photos
+      	ROLE_PHOTO_LARGE = 2			// Large photo: up to 750 in width, up to 500 in height
+      //	ROLE_PHOTO_ZOOM = 3 				// Photo zoom: 1024 max. width, 728 max. height
+      	
+      
+      end
+      
+      ST_Photo is Structure
+      	nPhotoID			is int
+      	sTitle 				is string
+      	sDescription		is string
+      	sEXIF 				is string
+      	nSpot 				is int
+      	bufBinary			is buffer
+      	nAlbumID 			is int
+      	sKeywords 			is string
+      	dtSnapshotDate 	is datetime
+      	dtUploadDate 		is datetime
+      	dtDateModified 	is datetime	
+      end
+      
+      
+      public
+      gtabPhotos		is array of ST_Photo
+      
+      
+      ST_Upload is Structure
+      	bufContent 		is buffer
+      	sFilePath 	is string 
+      	nPhotoID		is int
+      end
+      
+      ST_Thumbnail is Structure
+      	nThumbnailID 	is int
+      	sPath 		is string
+      end
+      
+      
+      garrUploadedPhotosID is array dynamic of int
+     type : 720896
+  procedures :
+   -
+     name : AddNewPhoto
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451189049996
+     type_code : 15
+     code : |1-
+      // Summary: Manage the upload of photos
+      // Syntax:
+      //[ <Result> = ] AddNewPhoto (<bufPhoto> is buffer, <sFile> is string [, <gnAlbumID> is int])
+      //
+      // Parameters:
+      //	bufPhoto (buffer): Image of the photo
+      //	sFile (ANSI string): Uploaded file
+      //	gnAlbumID (int - default value = -1): Album the photo is added to
+      // Return value:
+      // 	integer: ID of the photo created in database
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure AddNewPhoto( bufPhoto is buffer, sFile is string, gnAlbumID is int = -1)
+      
+      //************* Add the photo into the database *************//
+      nPhotoID is int = _AddPhotoToDatabase(bufPhoto, sFile, gnAlbumID)
+      
+      if nPhotoID = -1 then
+      	return -1
+      end
+      
+      
+      //************* Generate the thumbnails *************//
+      arrRoles is array of int
+      sWebPath is string
+      
+      // Initialize the list of roles
+      arrRoles =[ ROLE_PHOTO_LARGE]//, ROLE_PHOTO_ZOOM ]
+      
+      // Generate the different sizes of photos corresponding to the different roles
+      for each element nRole of arrRoles
+      	
+      	// Generate the thumbnail on disk
+      	sWebPath = _GenerateThumbnails(bufPhoto, nPhotoID, nRole)
+      	
+      	//Add thumbnail to database
+      	_AddThumbnailToDatabase(nPhotoID, nRole, sWebPath)
+      		
+      end
+      
+      return nPhotoID
+      
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return -1
+     type : 458752
+   -
+     name : _GenerateThumbnails
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451189115532
+     type_code : 15
+     code : |1-
+      // Summary: Generates the thumbnail of a photo (allows having photos in different sizes)
+      // Syntaxe :
+      //[ <Résultat> = ] _GenerateThumbnails (<bufPhoto> est buffer, <nPhotoID> est entier, <nRole> est entier)
+      //
+      // Paramètres :
+      //	bufPhoto (buffer) : Buffer containing the source image
+      //	nPhotoID (entier) : Identifier of the photo in the database
+      //	nRole (entier) : Role of the photo >> small or large?
+      // Traitement automatique des exceptions :   exécuter le bloc de code CAS EXCEPTION:
+      //
+      
+      // Return value:
+      // 	ANSI string: Path of photo
+      //// Automatic process of exceptions:   run CASE EXCEPTION:
+      PROCÉDURE private _GenerateThumbnails(bufPhoto is buffer, nPhotoID is int, nRole is int)
+      
+      
+      iThumbnail					is Image
+      sFileName 				is string
+      sWebPath					is string
+      
+      // Loading the image
+      iThumbnail	 				= bufPhoto
+      iThumbnail.FillColor = ColorPalette(colorBackgroundGeneral,1)
+      
+      // Resize according to the role
+      switch nRole
+      
+      	case ROLE_PHOTO_LARGE  // Large photo: up to 750 in width, up to 500 in height	
+      		dResize(iThumbnail,750,500, drHomothetic + drHighQuality)
+      		
+      //	CASE ROLE_PHOTO_ZOOM  // Photo when zoomed: very large 
+      //		dResize(iThumbnail,1024,768, drHomothetic + drHighQuality)
+      		
+      	other case
+      		AddError("Photo role not supported")
+      		return ""
+      end
+      
+      _ApplyWatermark(iThumbnail)
+      
+      // Build the name of the Thumbnail file
+      sFileName = "photo_"+nPhotoID+"_"+ nRole + "_" + Today() + Now +  ".jpg"
+      
+      sWebPath =  _CreateThumbnailFile(iThumbnail, sFileName)
+      
+      return sWebPath
+      
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return ""
+     type : 458752
+   -
+     name : _AddPhotoToDatabase
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451189181068
+     type_code : 15
+     code : |1-
+      // Summary: Adds the photo into the database 
+      // Syntax:
+      //[ <Result> = ] _AddPhotoToDatabase (<bufPhoto> is buffer, <sFile> is string [, <gnAlbumID> is int])
+      //
+      // Parameters:
+      //	bufPhoto (buffer): Image of the photo
+      //	sFile (ANSI string): Uploaded file
+      //	gnAlbumID (int - default value = -1): Album the photo is added to
+      // Return value:
+      // 	integer: ID of the added photo 
+      
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure private _AddPhotoToDatabase(bufPhoto is buffer, sFile is string, gnAlbumID is int = -1)
+      
+      
+      // Local variables
+      nPhotoID		is int	= -1
+      
+      
+      // Initialize the record
+      HReset(Photo)
+      
+      // Fill the information for the record
+      Photo.Binary = bufPhoto
+      Photo.title = fExtractPath(sFile, fFile)
+      
+      Photo.Exif = ReadExifInfo(bufPhoto)
+      
+      sDate is string = Left(ImageInfoValue(bufPhoto,imgDate),10)
+      sTime is string = Right(ImageInfoValue(bufPhoto,imgDate),8)
+      
+      Photo.SnapshotDate = StringToDate(sDate, "YYYY:MM:DD")  + Replace(sTime,":","")
+      Photo.UploadDate = Today() + Now()
+      
+      ImageInfoClose(bufPhoto)
+      
+      // Addition in database
+      if HAdd(Photo) = False then
+      	AddError("Unable to add photo")
+      	return -1
+      end
+      
+      // Store the identifier
+      nPhotoID = Photo.PhotoID
+      
+      if gnAlbumID <> -1 then
+      	AssociateAlbum(nPhotoID, gnAlbumID)
+      end
+      
+      // Return the identifier of the photo
+      return nPhotoID
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return -1
+     type : 458752
+   -
+     name : _ApplyWatermark
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451189246604
+     type_code : 15
+     code : |1-
+      // Summary: Applies a watermark to the thumbnail
+      // Syntax:
+      //[ <Result> = ] _ApplyWatermark (<iThumbnail> is Image)
+      //
+      // Parameters:
+      //	iThumbnail (Image): Photo onto which a watermark will be applied
+      // Return value:
+      // 	boolean: True if everything was ok, False otherwise
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure private _ApplyWatermark( iThumbnail is Image )
+      
+      //If no watermark was requested, exit right now, there is no need to continue
+      if ReadRequestForWatermarkIntegration() = False then
+      	return True 
+      end
+      
+      iWatermarkImage is Image
+      sWatermarkPath is string 
+      
+      stWatermarkOptions is ST_WATERMARK_OPTIONS
+      stWatermarkOptions = ReadWatermarkOptions()
+      
+      //Retrieve the watermark defined in the site
+      sWatermarkPath = ReadImageWatermark()
+      
+      //No watermark was defined, exit from the procedure
+      if sWatermarkPath = "" then
+      	return True
+      else
+      	if fFileExist(CompleteDir(sReturnWebDir()) + sWatermarkPath) = False then	
+      		AddError("The file for the watermark is not accessible")
+      		return False  
+      	end
+      end
+      
+      iWatermarkImage = dLoadImage(sWatermarkPath)
+      
+      dResize(iWatermarkImage, iThumbnail.Width, iThumbnail.Height, drHomotheticCentered + drHighQuality)
+      
+      dAlphaBlend(iThumbnail,iWatermarkImage, stWatermarkOptions.nOpacity)
+      
+      return True
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return False
+     type : 458752
+   -
+     name : ReadPhotoThumbnailAccordingToRole
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451189312140
+     type_code : 15
+     code : |1-
+      // Summary: Returns the path of a given photo
+      // Syntax:
+      //[ <Result> = ] ReadPhotoThumbnailAccordingToRole (<nPhotoID> is int, <nRole> is int)
+      //
+      // Parameters:
+      //	nPhotoID (integer): Identifier of the product
+      //	nRole (integer): Role of the photo
+      // Return value:
+      // 	Undefined type: Path of the photo
+      //
+      //// Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure ReadPhotoThumbnailAccordingToRole(nPhotoID is int, nRole is int )
+      
+      TheThumbnail is ST_Thumbnail
+      
+      // Find the photo
+      HReadSeekFirst(Thumbnail,PhotoRoleID,[nPhotoID,nRole])
+      
+      if HFound(Thumbnail) = False then
+      	AddError("Requested thumbnail not found")
+      	return Null
+      else
+      	 TheThumbnail.sPath =  Thumbnail.Path
+      	 TheThumbnail.nThumbnailID =  Thumbnail.ThumbnailID
+      	 return TheThumbnail
+      end
+      
+      case exception:
+      	AddError("Exception detected",ExceptionInfo())
+      	return Null
+      	
+     type : 458752
+   -
+     name : _CreateThumbnailFile
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451189377676
+     type_code : 15
+     code : |1-
+      // Summary: Creates on disque the file of an image in memory
+      // Syntax:
+      //[ <Result> = ] _CreateThumbnailFile (<iThumbnail> is Image, <sFileName> is string)
+      //
+      // Parameters:
+      //	iThumbnail (Image): Image of the thumbnail to be saved on disk
+      //	sFileName (ANSI string): Name of the file to generate
+      // Return value:
+      // 	ANSI string: Web path of the thumbnail
+      //// Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure private _CreateThumbnailFile(iThumbnail is Image, sFileName is string)
+      
+      sFullPath				is string
+      sFullGenerationPath	is string
+      sWebPath					is string
+      
+      sFullPath = CompleteDir(sReturnDirWebUpload()) + sFileName
+      sFullGenerationPath = CompleteDir(sReturnGenerationDir()) + sFileName
+      
+      // Backup in BMP format
+      if dSaveImageJPEG(iThumbnail,sFullGenerationPath,100) = False then
+      	AddError("Error while saving the thumbnail",ErrorInfo())
+      	return ""
+      end
+      
+      // Transfer the generated image into the _WEB directory
+      
+      // Direct transfer
+      if fCopyFileWebFolder(sFullGenerationPath,sFullPath) = False then
+      	AddError("Unable to transfer the image to the _WEB directory",ErrorInfo())
+      	return ""
+      end
+      
+      // Delete the generation file
+      if fFileExist(sFullGenerationPath) = True then
+      	if fDelete(sFullGenerationPath) = False then
+      		AddError("Unable to delete the temporary generation file",ErrorInfo())
+      		// Non-fatal error
+      	end
+      end
+      
+      // Build the path of the image in relation to fWebDir
+      sWebPath = Replace(sFullPath,fWebDir(),"")
+      
+      sWebPath = Replace(sWebPath,"\","/")
+      if Left(sWebPath,1)~="/" then sWebPath = Right(sWebPath,Length(sWebPath)-1)
+      
+      // Return the Web path
+      return	sWebPath 
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return ""
+     type : 458752
+   -
+     name : _AddThumbnailToDatabase
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451189443212
+     type_code : 15
+     code : |1-
+      // Summary: Saves a photo thumbnail to the database 
+      // Syntax:
+      //[ <Result> = ] _AddThumbnailToDatabase (<nPhotoID>, <nRole>, <sWebPath>)
+      //
+      // Parameters:
+      //	nPhotoID: ID of the photo
+      //	nRole: Role of the photo: normal, small, large ..
+      //	sWebPath: Path of the thumbnail on disk
+      // Return value:
+      // 	integer: ID of the added thumbnail
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure private _AddThumbnailToDatabase(nPhotoID, nRole, sWebPath)
+      
+      
+      // Local variables
+      nThumbnailID		is int	= -1
+      
+      // Initialize the record
+      HReset(Thumbnail)
+      
+      Thumbnail.PhotoID = nPhotoID
+      Thumbnail.Role = nRole
+      
+      // Build the image
+      Thumbnail.Path = sWebPath
+      
+      // Addition in database
+      if HAdd(Thumbnail) = False then
+      	AddError("Unable to add thumbnail")
+      	return -1			
+      end
+      
+      nThumbnailID = Thumbnail.ThumbnailID
+      
+      return nThumbnailID
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return -1
+     type : 458752
+   -
+     name : ModifyPhoto
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451189508748
+     type_code : 15
+     code : |1-
+      // Summary: Modifies the title of the photo whose ID is passed in parameter
+      // Syntax:
+      //[ <Result> = ] ModifyPhoto (<nPhotoID> [, <sTitle> [, <sDescription> [, <sKeywords>]]])
+      //
+      // Parameters:
+      //	nPhotoID: ID of the photo to modify
+      //	sTitle (default value=""): New title for the photo
+      //	sDescription (default value=""): New photo description
+      //	sKeywords (default value=""): Photo keywords
+      // Return value:
+      // 	boolean: True if everything is OK
+      // Automatic process of exceptions: run CASE EXCEPTION:
+      //
+      
+      procedure ModifyPhoto(nPhotoID, sTitle = "", sDescription = "", sKeywords = "")
+      
+      // Find the photo
+      HReadSeekFirst(Photo,PhotoID,nPhotoID)
+      if HFound(Photo) = False then
+      	AddError("Requested photo not found")
+      	return False
+      end
+      
+      
+      Photo.title			= sTitle
+      Photo.Specification	= sDescription
+      Photo.Keywords		= sKeywords
+      
+      
+      // Modification in database
+      if HModify(Photo) = False then
+      	AddError("Unable to modify photo")
+      	return False		
+      end
+      
+      return True
+      
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return False
+     type : 458752
+   -
+     name : AssociateAlbum
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451189574284
+     type_code : 15
+     code : |1-
+      // Summary: Associate the photo with an album
+      // Syntax:
+      //[ <Result> = ] AssociateAlbum (<nPhotoID>, <nAlbumID>)
+      //
+      // Parameters:
+      //	nPhotoID: ID of the photo
+      //	nAlbumID: Album ID
+      // Return value:
+      // 	boolean: True if everything is OK
+      // Automatic process of exceptions: run CASE EXCEPTION:
+      //
+      
+      procedure AssociateAlbum(nPhotoID, nAlbumID)
+      
+      
+      //******************************* Associate the album with the photo
+      // Find the photo
+      HReadSeekFirst(Photo, PhotoID, nPhotoID)
+      if HFound(Photo) = False then
+      	AddError("Requested photo not found")
+      	return False
+      end
+      
+      Photo.AlbumID = nAlbumID
+      
+      // Modification in database
+      if HModify(Photo) = False then
+      	AddError("Unable to modify photo")
+      	return False		
+      end
+      
+      
+      //Is it the 1st photo added to the album? >> If yes, it will be automatically associated with the album
+      //However, no error is returned if this process fails 
+      //because it is not serious 
+      // Find the album
+      HReadSeekFirst(Album, AlbumID, nAlbumID)
+      if HFound(Album) = False then
+      	AddError("Album not found")
+      end
+      
+      if Album.PhotoID = 0 then 
+      	Album.PhotoID = nPhotoID
+      	
+      	// Modification in database
+      	if HModify(Album) = False then
+      		AddError("Unable to modify album")
+      	end
+      	
+      end
+      
+      
+      return True
+      
+      case exception:
+      	
+      AddError("Exception detected",ExceptionInfo())
+      return False
+     type : 458752
+   -
+     name : DeletePhoto
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451189639820
+     type_code : 15
+     code : |1+
+      // Summary: Delete the specified photo
+      // Syntax:
+      //[ <Result> = ] DeletePhoto (<nPhotoID> is int)
+      //
+      // Parameters:
+      //	nPhotoID (integer): Identifier of the photo to be deleted
+      // Return value:
+      // 	boolean: True if everything is OK
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure DeletePhoto( nPhotoID is int )
+      
+      bChangePhotoRepresentingAlbum is boolean
+      
+      
+      //Note: HyperFileSQL will automatically delete the thumbnails when the photo is deleted
+      //Idem for the comments of the photo
+      
+      //********* However, the .jpg files for the different sizes of the photo thumbnails must be deleted
+      // store the paths of the thumbnails and delete them when all the relevant elements have been deleted in the database
+      arrPathThumbnails is array of strings 
+      
+      QRY_PhotoThumbnails.pPhotoID = nPhotoID
+      QRY_PhotoThumbnails.pRole = Null
+      
+      sDirectory is string = CompleteDir(sReturnWebDir()) 
+      sThumbnailPath is string
+      
+      HExecuteQuery(QRY_PhotoThumbnails)
+      for each QRY_PhotoThumbnails 
+      	sThumbnailPath = sDirectory + QRY_PhotoThumbnails.Path
+      	ArrayAdd(arrPathThumbnails, sThumbnailPath)
+      end
+      //*********
+      
+      
+      // Find the photo in database
+      HReadSeekFirst(Photo,PhotoID,nPhotoID)
+      if HFound(Photo) = False then
+      	AddError("Photo not found in the database")
+      	return False
+      end
+      
+      //Find the album to which it belongs to find out whether it represents it
+      //If yes, change the photo representing the album
+      HReadSeekFirst(Album,AlbumID,Photo.AlbumID)
+      if HFound(Album) = True then
+      	if Album.PhotoID = nPhotoID then
+      		bChangePhotoRepresentingAlbum = True
+      	end
+      end
+      
+      // Delete the photo from the database
+      if HDelete(Photo) = False then
+      	AddError("Unable to delete the photo")
+      	return False
+      end
+      
+      //The deletions have been performed in database, now delete the files on disk
+      // Delete the generation file
+      for each sThumbnailPath of arrPathThumbnails
+      	if fFileExist(sThumbnailPath) = True then
+      		if fDelete(sThumbnailPath) = False then
+      			AddError(StringBuild("Unable to delete thumbnail file for the %1 photo",nPhotoID),ErrorInfo())
+      			// Non-fatal error
+      		end
+      	end
+      end
+      
+      
+      //If the photo representing the album had to be changed, do it now
+      if bChangePhotoRepresentingAlbum = True then
+      	//Find the 1st photo in this album
+      	HReadSeekFirst(Photo,AlbumID,Album.AlbumID)	
+      	if HFound(Photo) then
+      		Album.PhotoID = Photo.PhotoID
+      	else	
+      		Album.PhotoID = 0
+      	end
+      	// Modification in database
+      	if HModify(Album) = False then
+      		AddError("Unable to modify album")
+      	end
+      end
+      
+      //At this point, everything was successfully performed
+      return True
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return False
+      
+      
+     type : 458752
+   -
+     name : ReadNbComments
+     procedure_id : 1449464451189705356
+     type_code : 15
+     code : |1+
+      // Summary: Retrieves the number of comments for the photo whose ID is passed in parameter
+      // Syntax:
+      //[ <Result> = ] ReadNbComments (<nPhotoID>)
+      //
+      // Parameters:
+      //	nPhotoID: ID of the photo for which the number of comments is requested
+      // Return value:
+      // 	integer: Number of comments for the photo
+      
+      procedure ReadNbComments(nPhotoID)
+      
+      nNbComments is int
+      
+      //Finds the number of photos in this album
+      QRY_NbPhotoComments.pPhotoID = nPhotoID
+      
+      HExecuteQuery(QRY_NbPhotoComments)
+      
+      HReadFirst(QRY_NbPhotoComments)
+      
+      nNbComments = QRY_NbPhotoComments.NbComments
+      
+      return nNbComments
+      
+      
+      
+      
+     type : 458752
+   -
+     name : ReadExifInfo
+     procedure_id : 1449464451189770892
+     type_code : 15
+     code : |1-
+      // Summary: Formats the EXIFS information to display it in clear
+      // Syntax:
+      //[ <Result> = ] ReadExifInfo (<bufPhoto>)
+      //
+      // Parameters:
+      //	bufPhoto: Photo
+      // Return value:
+      // 	ANSI string: EXIF information
+      
+      procedure ReadExifInfo(bufPhoto)
+      
+      
+      sExifInfo is string
+      
+      sFlash is string
+      nFlash is 8-byte int = ImageInfoValue(bufPhoto,imgFlash)
+      
+      
+      if nFlash[1] = 1 then
+      	sFlash = "Triggered"
+      else
+      	sFlash = "Not triggered"
+      end
+      
+      switch nFlash[2 to 3] 
+      //	case 0:
+      //		sFlash += " No backlight detection functionality"
+      	case 2 :
+      		sFlash += [", "] + "Backlight not detected"
+      	case 3 :
+      		sFlash += [", "] + "Backlight detected"	
+      end
+      switch nFlash[4 to 5] 
+      	case 1 :
+      		sFlash += [", "] + "Forced trigger"
+      	case 2 :
+      		sFlash += [", "] + "Disabled"
+      	case 3 :
+      		sFlash += "Auto mode"	
+      end
+      
+      if nFlash[6] = 1 then
+      	sFlash += [", "] + "No flash"	
+      end
+      
+      if nFlash[7] = 1 then
+      	sFlash += [", "] + "Anti-red-eye mode enabled"	
+      end
+      
+      sOrientation is string
+      if ImageInfoValue(bufPhoto,imgOrientation) in (1,2,3,4) then
+      	sOrientation = "Landscape" 
+      else 
+      	sOrientation = "Portrait" 
+      end
+      
+      sExposureProgram is string
+      switch ImageInfoValue(bufPhoto,imgExposureProgram) 
+      	case 1 : 
+      		sExposureProgram = "Manual" 
+      	case 2 :
+      		sExposureProgram = "Normal"
+      	case 3 :
+      		sExposureProgram = "Aperture priority" 
+      	case 4 :
+      		sExposureProgram = "Speed priority"
+      	case 5 :
+      		sExposureProgram = "Creation"
+      	case 6 :
+      		sExposureProgram = "Action"
+      	case 7 :
+      		sExposureProgram = "Close-up portrait without background"
+      	case 8 :
+      		sExposureProgram = "Landscape"
+      	other case :
+      		sExposureProgram = "Undefined"
+      end
+      
+      sMeasurementMode is string
+      switch ImageInfoValue(bufPhoto,imgMeteringMode) 
+      	case 1 : 
+      		sMeasurementMode = "Average" 
+      	case 2 :
+      		sMeasurementMode = "Average centered"
+      	case 3 :
+      		sMeasurementMode = "Point" 
+      	case 4 :
+      		sMeasurementMode = "Multipoint"
+      	case 5 :
+      		sMeasurementMode = "Pattern"
+      	case 6 :
+      		sMeasurementMode = "Partial"
+      	other case :
+      		sMeasurementMode = "Undefined"
+      end
+      
+      sExifInfo = "Camera"  + TAB + TAB + TAB + ImageInfoValue(bufPhoto,imgDeviceModel) + CR + 
+      "Exposure" + TAB + TAB + TAB + Round(Val(ImageInfoValue(bufPhoto,imgExposureTime)),3)  + CR + 
+      "Aperture" + TAB + TAB + TAB + "f/" +ImageInfoValue(bufPhoto,imgFAperture)  + CR + 
+      "Focal length" + TAB + TAB + TAB + ImageInfoValue(bufPhoto,imgFocalLength) + " mm" + CR + 
+      "Dimensions" + TAB + TAB + TAB + ImageInfoValue(bufPhoto,imgWidth) + "x" + ImageInfoValue(bufPhoto,imgHeight) + CR + 
+      "Flash" + TAB + TAB + TAB + TAB + sFlash + CR + 
+      "Orientation" + TAB + TAB + TAB + sOrientation + CR + 
+      "X resolution" + TAB + TAB + TAB + ImageInfoValue(bufPhoto,imgXResolution)  + CR + 
+      "Y resolution" + TAB + TAB + TAB + ImageInfoValue(bufPhoto,imgYResolution)  + CR + 
+      "Exposure program" + TAB + TAB + sExposureProgram + CR + 
+      "Metering mode" + TAB + TAB + TAB + sMeasurementMode + CR +
+      "Lightness" + TAB + TAB + TAB + ImageInfoValue(bufPhoto,imgBrightness)
+      
+      return sExifInfo
+     type : 458752
+   -
+     name : RemovePhotoFromAlbum
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451189836428
+     type_code : 15
+     code : |1+
+      // Summary: Remove the specified photo from its album
+      // Syntax:
+      //[ <Result> = ] RemovePhotoFromItsAlbum (<nPhotoID> is int)
+      //
+      // Parameters:
+      //	nPhotoID (integer): ID of the photo to manage
+      // Return value:
+      // 	boolean: True if everything is OK
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure RemovePhotoFromAlbum( nPhotoID is int )
+      
+      bChangePhotoRepresentingAlbum is boolean
+      
+      // Find the photo in database
+      HReadSeekFirst(Photo,PhotoID,nPhotoID)
+      if HFound(Photo) = False then
+      	AddError("Photo not found in the database")
+      	return False
+      end
+      
+      //Find the album to which it belongs to find out whether it represents it
+      //If yes, change the photo representing the album
+      HReadSeekFirst(Album,AlbumID,Photo.AlbumID)
+      if HFound(Album) = True then
+      	if Album.PhotoID = nPhotoID then
+      		bChangePhotoRepresentingAlbum = True
+      	end
+      end
+      
+      Photo.AlbumID = 0
+      
+      // Modification in database
+      if HModify(Photo) = False then
+      	AddError("The photo could not be removed from the album")
+      	return False
+      end
+      
+      //If the photo representing the album had to be changed, do it now
+      if bChangePhotoRepresentingAlbum = True then
+      	//Find the 1st photo in this album
+      	HReadSeekFirst(Photo,AlbumID,Album.AlbumID)	
+      	if HFound(Photo) then
+      		Album.PhotoID = Photo.PhotoID
+      	else	
+      		Album.PhotoID = 0
+      	end
+      	// Modification in database
+      	if HModify(Album) = False then
+      		AddError("Unable to modify album")
+      	end
+      end
+      
+      //At this point, everything was successfully performed
+      return True
+      
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return False
+      
+      
+     type : 458752
+   -
+     name : RotateThumbnail
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451189901964
+     type_code : 15
+     code : |1+
+      // Summary: Used to rotate a thumbnail with the angle passed as parameter
+      // Syntax:
+      //[ <Result> = ] RotateThumbnail (<nThumbnailID>, <nAngle>)
+      //
+      // Parameters:
+      //	nThumbnailID: ID of the thumbnail to rotate
+      //	nAngle: Rotation angle
+      // Return value:
+      // 	ANSI string: Path of the new generated image
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure RotateThumbnail(nThumbnailID, nAngle)
+      
+      
+      sFileName			is string
+      sFullPath 		is string
+      sWebPath 			is string
+      
+      HReadSeekFirst(Thumbnail, ThumbnailID, nThumbnailID)
+      if HFound(Thumbnail) = False then
+      	AddError("Thumbnail not found in the database")
+      	return ""
+      end
+      
+      //Path of thumbnail on disk?
+      sFileName = fExtractPath(Thumbnail.Path, fFile+fExtension)
+      sFullPath = CompleteDir(sReturnDirWebUpload()) + sFileName
+      
+      //Load the thumbnail in memory
+      iThumbnail is Image = dLoadImage(sFullPath) 
+      
+      //Perform the rotation
+      dRotation(iThumbnail, nAngle)
+      
+      //New name for the thumbnail: replace the former DateTime by the current one
+      sFileName = Replace(sFileName,  ExtractString(fExtractPath(Thumbnail.Path, fFile),1,"_",FromEnd),Today() + Now())
+      
+      sWebPath = _CreateThumbnailFile(iThumbnail, sFileName)
+      
+      if sWebPath = "" then
+      	return ""
+      end
+      
+      // Modification in database
+      Thumbnail.Path = sWebPath
+      
+      if HModify(Thumbnail)  = False then
+      	AddError("Unable to modify thumbnail")
+      	return ""
+      end
+      
+      // Delete the previous file of the thumbnail (before rotation)
+      if fFileExist(sFullPath) = True then
+      	if fDelete(sFullPath) = False then
+      		AddError("Unable to delete old thumbnail file",ErrorInfo())
+      		// Non-fatal error
+      	end
+      end
+      
+      
+      // Return the Web path
+      return sWebPath
+      
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return ""
+      
+     type : 458752
+  procedure_templates : []
+  property_templates : []
+ code_parameters :
+  internal_properties : CAAAAAgAAACVGQgYbalU7DKC3oH4ItDrjtcTHXXV/EuH8q0IbhyQlw==
+  original_name : COL_SansNom1
+resources :
+ string_res :
+  identifier : 0x1fbe19c40a7dcdbe
+  internal_properties : CAAAAAgAAACm76HWfKGWp33VjXInA4cRlqArlgTTA862QGt72W2ld5Y=
+custom_note :
+ internal_properties : CAAAAAgAAABtB9HWVzrXO2+4NDRVK0vmzaNKrCKqH1DBX30lMmGZ

@@ -1,0 +1,1174 @@
+#To edit and compare internal_properties, use WINDEV integrated tools.
+#Internal properties refer to the properties of controls in windows, reports, etc.
+info :
+ name : SET_SiteConfig
+ major_version : 28
+ minor_version : 0
+ type : 7
+ description : ""
+ subtype : 0
+procedure_set :
+ identifier : 0x141d883c1f5306a4
+ internal_properties : CAAAAAgAAABGLu41kG7fjQV3iS4F72qmnKaNh5694reolNKIW0iw
+ code_elements :
+  type_code : 31
+  p_codes :
+   -
+     code : |1+
+      
+      ST_SMTP_CONFIGURATION is Structure
+      	sServerAddress		is string
+      	sUserLogin	is string
+      	sUserPWD		is string
+      	nPort				is int
+      	bSecuredMode		is boolean	
+      end
+      
+      ST_WATERMARK_OPTIONS is Structure
+      	sWatermarkText 	is string
+      	sFont 			is string
+      	nSize 			is int
+      	nColor 			is int
+      	nAttributes 			is int
+      	nAngle 				is int
+      	nOpacity			is int
+      	nPosX 				is int
+      	nPosY 				is int
+      end
+      
+      
+      // Manage the parameters of the site
+      constant
+      	
+      	// Type of the site parameters
+      	CN_INTEGER = 1
+      	CN_STRING = 2
+      	CN_REAL = 4
+      	CN_BINARY = 5
+      	
+      	// The constants of the parameters can be modified by the administrator of the site
+      	csAdmin_SiteName					= "SITE_NAME"						// The name of the site (string)
+      	csAdmin_SiteLogo				= "SITE_LOGO"					// Image of the company, logo (binary)	
+      	csAdmin_Rights					= "RIGHTS"					 	// Text of site footer	
+      	csAdmin_PhotoHome			= "PHOTO_HOME"				// Photo of the home page 	
+      	csAdmin_TextContactForm	= "TEXT_FORM_CONTACT"	// Text of the form for contact
+      	csAdmin_WatermarkImage			= "WATERMARK_IMAGE"				// Image of the watermark
+      	csAdmin_WatermarkOptions		= "WATERMARK_OPTIONS"			// Text of the watermark
+      	csAdmin_IncludeWatermark	= "INTEGRATE_WATERMARK"			// Include the watermark
+      	csAdmin_Administrator_Login	= "ADMIN_USERNAME"					// Administrator login
+      	csAdmin_Administrator_PWD		= "ADMIN_PASSWORD"					// Administrator PWD
+      	csAdmin_Default_Login			= "admin"							// Default login
+      	csAdmin_SMTPCONFIG				= "CONFIG_SMTP"					// Configuration of the SMTP server for sending emails
+      	csAdmin_SenderEmail			= "EMAIL_SENDER"
+      	csAdmin_RecipientEmail		= "EMAIL_RECIPIENT"
+      	csAdmin_HomePage				= "HOMEPAGE"
+      		
+      	CN_DefaultLogo					= "Config_Site/logo.png"				//Default logo for the site
+      	CN_DefaultHomePhoto			= "Config_Site/Photo_Home.jpg"		//Default photo for the site home
+      	CN_Watermark					= "Watermark.png"					//Watermark to include to the images
+      	
+      end
+     type : 720896
+  procedures :
+   -
+     name : ReadSiteLogo
+     procedure_id : 1449464446888183460
+     type_code : 15
+     code : |1+
+      // Summary: Returns the logo of the site
+      // Syntax:
+      //[ <Result> = ] ReadSiteLogo ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	ANSI string: Empty buffer if no logo image to apply
+      
+      procedure ReadSiteLogo()
+      
+      // Local variables
+      sLogoFile is string
+      
+      // Read the logo
+      sLogoFile = GetParameter(csAdmin_SiteLogo,CN_DefaultLogo)
+      if sLogoFile = "" then return ""
+      
+      // Return the logo 
+      return sLogoFile
+     type : 458752
+   -
+     name : ModifySiteLogo
+     internal_properties : CAAAAAgAAAB0lS7Re69eSz+7Ud5vC2nIzKEXTXCUuQsR+NWRKmqegC2/PVpPjM1JqwAzH7zZdYKgA18kAdVqoP7ZJbeHboF3KWGyipYK4l58glKJKAsEiU1l8pQRenf9paasQYSjRWip+R8ldAwYOGje0iZnQA==
+     procedure_id : 1449464446888248996
+     type_code : 15
+     code : |1-
+      // Summary: Modify the logo of the site
+      // Syntax:
+      //[ <Result> = ] ModifySiteLogo (<sFilePath> is string)
+      //
+      // Parameters:
+      //	sFilePath (ANSI string): Path of the file for the new logo
+      // Return value:
+      // 	boolean: True if the modification was performed, False otherwise
+      //
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure ModifySiteLogo(sFilePath is string)
+      
+      // Local variables
+      LogoImage is Image
+      sLogoPath	is string
+      sPathGenerationFile is string
+      
+      // Note the modification of configuration
+      NotifyConfigurationModification("Website logo modification")
+      
+      // Check the existence of the file
+      if fFileExist(sFilePath) = False then
+      	AddError("The file for the new logo is not accessible")
+      	return False
+      end
+      
+      // Build the file name for the generation image
+      sPathGenerationFile = CompleteDir(sReturnGenerationDir())+fExtractPath(sFilePath,fFile)+".png"
+      
+      // Is the image not too big?
+      LogoImage = sFilePath
+      if LogoImage.Height > 100 _or_ LogoImage.Width > 300  then
+      	AlphaImage is Image	
+      	// Create a destination image with Alpha layer to manage the transparency
+      	if not fExtractPath(sFilePath,fExtension) ~= ".png" then
+      	
+      		AlphaImage.FillColor = iTransparent
+      		AlphaImage.Width = LogoImage.Width
+      		AlphaImage.Height = LogoImage.Height
+      	
+      		// Copy the image read in the image with Alpha layer
+      		dAlphaBlend(AlphaImage,LogoImage)
+      	else
+      		AlphaImage = LogoImage
+      	end
+      	
+      	// Resize the image
+      	if dResize(AlphaImage,300,100,drHomotheticCentered + drHighQuality) = False then
+      		AddError("The image provided for the logo could not be resized",ErrorInfo())
+      		// This is not a fatal error
+      	end
+      	
+      	// Save the image: we want a PNG
+      	if dSaveImagePNG(AlphaImage,sPathGenerationFile) = False then
+      		AddError("An error occurred while saving the logo",ErrorInfo())
+      		return False
+      	end
+      else
+      	if fCopyFile(sFilePath,sPathGenerationFile) = False then
+      		AddError("An error occurred while copying the logo")
+      		return False
+      	end
+      end
+      
+      
+      // Copy the logo into the authorized _WEB directory
+      sLogoPath = CompleteDir(sReturnDirWebUpload())+"logo.png"
+      if fCopyFileWebFolder(sPathGenerationFile,sLogoPath) = False then
+      	AddError("An error occurred while deploying the logo",ErrorInfo())
+      	return False
+      end
+      
+      
+      // Delete the generation file
+      if fFileExist(sPathGenerationFile) = True then
+      	if fDelete(sPathGenerationFile) = False then
+      		AddError("Unable to delete the temporary generation file",ErrorInfo())
+      		// Non-fatal error
+      	end
+      end
+      
+      // Build the path of the image in relation to fWebDir
+      sLogoPath = Replace(sLogoPath,fWebDir(),"")
+      
+      sLogoPath = Replace(sLogoPath,"\","/")
+      if Left(sLogoPath,1)~="/" then sLogoPath = Right(sLogoPath,Length(sLogoPath)-1)
+      
+      // Save the logo in database
+      if StoreParameter(csAdmin_SiteLogo,sLogoPath,CN_STRING) = False then
+      	return False
+      end
+      
+      // Delete the temporary file
+      if fDelete(sFilePath) = False then
+      	AddError("The temporary logo file could not be deleted",ErrorInfo())
+      	// This is not a fatal error
+      end
+      
+      // Modification successfully performed
+      return True
+      
+      case exception:
+      	AddError("An exception was detected",ExceptionInfo())
+      	return False
+     type : 458752
+   -
+     name : GetParameter
+     procedure_id : 1449464446888314532
+     type_code : 15
+     code : |1+
+      // Summary: Retrieve a parameter for the site configuration
+      // Syntax:
+      //[ <Result> = ] GetParameter (<sParameterName> [, <sDefaultValue>])
+      //
+      // Parameters:
+      //	sParameterName: Name of the parameter (see the constants..)
+      //	sDefaultValue (default value=""): Default value to return
+      // Return value:
+      // 	ANSI string: Value of parameter
+      //
+      
+      procedure GetParameter(sParameterName,sDefaultValue = "") : string
+      
+      // Search for the parameter
+      HReadSeekFirst(SITE_CONFIGURATION,Parameter_Name,sParameterName)
+      if HFound(SITE_CONFIGURATION) then
+      	
+      	// According to the type of parameter	
+      	switch SITE_CONFIGURATION.ParameterType
+      		// Integer
+      		case CN_INTEGER
+      			// Returns the integer value of this parameter
+      			return SITE_CONFIGURATION.IntegerValue
+      		
+      		// Binary
+      		case CN_BINARY
+      			// Returns the binary value of this parameter
+      			return SITE_CONFIGURATION.BinaryValue
+      			
+      		// String
+      		case CN_STRING
+      			// Returns the string value of this parameter
+      			return SITE_CONFIGURATION.StringValue
+      					
+      		// Real
+      		case CN_REAL		
+      			// Returns the real value of this parameter
+      			return SITE_CONFIGURATION.RealValue
+      		
+      	end
+      
+      end
+      
+      
+      // Return an empty string by default if nothing is found or if the type of value is not correct
+      // No problem if the expected value is a string value or a binary value
+      // It will be set to 0 if the expected value is an integer value or a real value
+      return sDefaultValue
+     type : 458752
+   -
+     name : StoreParameter
+     internal_properties : CAAAAAgAAADiA7yqzYOu44fj73SxK4UU/BFjiY7ckWMJwMObKHb2IBFbrSJtpFk9H6RVxTaJlWrYI8M4h1VuYz+a+OToB2zcisrLAQPHh70x1y32SRxrclJi958ac2DkXu9nltV0aA3KmriQHYWxe9kvOLjx1g==
+     procedure_id : 1449464446888380068
+     type_code : 15
+     code : |1-
+      // Summary: Save a parameter for the site configuration
+      // Syntax:
+      //[ <Result> = ] StoreParameter (<sParameterName>, <sValue>, <nType>)
+      //
+      // Parameters:
+      //	sParameterName: Name of the parameter
+      //	sValue: Value that must be assigned to this parameter
+      //	nType: Type of the parameter
+      // Return value:
+      // 	boolean: True if the parameter was saved, False otherwise
+      //
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure StoreParameter(sParameterName, sValue, nType)
+      
+      
+      nIntegerValue is int
+      cyRealValue is currency
+      
+      
+      // Is it necessary to cast the value?
+      switch nType
+      
+      	case CN_BINARY, CN_STRING
+      		// No action
+      		
+      	case CN_REAL
+      		// Cast the value into a currency
+      		cyRealValue = sValue
+      		
+      	case CN_INTEGER
+      		
+      		// Cast the value into an integer
+      		nIntegerValue = sValue
+      		
+      	other case
+      		// The type is unknown, return False		
+      		AddError("Unknown type of parameter")
+      		return False
+      end
+      
+      
+      // Search for the parameter in the configuration file
+      HReadSeekFirst(SITE_CONFIGURATION,Parameter_Name,sParameterName)
+      
+      // Refresh the parameters
+      HReset()
+      SITE_CONFIGURATION.Parameter_Name = sParameterName
+      SITE_CONFIGURATION.ParameterType = nType
+      
+      switch nType
+      	case CN_BINARY
+      		// Attach the memo
+      		HLinkMemo(SITE_CONFIGURATION,BinaryValue,sValue)
+      	
+      	case CN_STRING
+      	
+      		SITE_CONFIGURATION.StringValue = sValue
+      	
+      	case CN_REAL
+      	
+      		SITE_CONFIGURATION.RealValue = cyRealValue
+      		
+      	case CN_INTEGER
+      		
+      		SITE_CONFIGURATION.IntegerValue = nIntegerValue
+      		
+      	other case
+      		
+      end
+      
+      
+      // Do we have to modify it or to add it?
+      if HFound(SITE_CONFIGURATION) then
+      	// Parameter found: it must be modified
+      	if HModify(SITE_CONFIGURATION) = False then
+      		AddError("Unable to modify parameter")
+      		return False
+      	else
+      		return True
+      	end
+      
+      else
+      	// Parameter not found: it must be added
+      	if HAdd(SITE_CONFIGURATION) = False then
+      		AddError("Unable to add parameter")
+      		return False		
+      	else
+      		return True
+      	end
+      
+      end
+      
+      case exception:
+      	dbgAssert(False,"Exception not handled when saving the parameter")
+      	AddError("Exception detected",ExceptionInfo())
+      	return False
+     type : 458752
+   -
+     name : SiteLogoIsCustomized
+     procedure_id : 1449464446888445604
+     type_code : 15
+     code : |1+
+      // Summary: Indicates whether the logo of the site is customized
+      // Syntax:
+      //[ <Result> = ] SiteLogoIsCustomized ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	boolean: True if the logo is customized, False otherwise
+      
+      procedure SiteLogoIsCustomized()
+      
+      // Local variables
+      sLogo is string
+      
+      // Retrieve the banner
+      sLogo = GetParameter(csAdmin_SiteLogo)
+      
+      // If the path is empty, it means that the logo is not customized
+      if sLogo = "" then
+      	// The banner is the default one
+      	return False
+      else
+      	// The banner is customized
+      	return True
+      end
+     type : 458752
+   -
+     name : ReadRights
+     procedure_id : 1449464446888511140
+     type_code : 15
+     code : |1-
+      // Summary: Returns the text written in page footer
+      // Syntax:
+      //[ <Result> = ] ReadRights ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	Undefined type: Text written in page footer: the rights in most cases
+      
+      procedure ReadRights()
+      
+      return GetParameter(csAdmin_Rights,"")
+     type : 458752
+   -
+     name : ModifyRights
+     procedure_id : 1449464446888576676
+     type_code : 15
+     code : |1-
+      // Summary: Modifies the text written in the page footers
+      // Syntax:
+      //[ <Result> = ] ModifyRights (<sText> is string)
+      //
+      // Parameters:
+      //	sText (ANSI string): New text
+      // Return value:
+      // 	boolean: True if the modification was performed, False otherwise
+      
+      procedure ModifyRights(sText is string)
+      
+      
+      return StoreParameter(csAdmin_Rights,sText,CN_STRING)
+     type : 458752
+   -
+     name : ReadHomePhoto
+     procedure_id : 1449464446888642212
+     type_code : 15
+     code : |1+
+      // Summary: Returns the logo of the site
+      // Syntax:
+      //[ <Result> = ] ReadHomePhoto ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	ANSI string: Empty buffer if no banner image to apply
+      
+      procedure ReadHomePhoto()
+      
+      // Local variables
+      sHomePhotoFile is string
+      
+      // Read the logo
+      sHomePhotoFile = GetParameter(csAdmin_PhotoHome, CN_DefaultHomePhoto)
+      if sHomePhotoFile = "" then return ""
+      
+      // Return the logo 
+      return sHomePhotoFile
+     type : 458752
+   -
+     name : ModifyHomePhoto
+     internal_properties : CAAAAAgAAADebABpFDPValyY1BmMIrllzdgiQ038FvZ6IujhUhorVXJYHclctgFAaPPYSMYJo5w/CdTRLpTN2tV/fGRg/V7LeFu0l8IJDVjpgnnugQBLNWIfxAoqbrk=
+     procedure_id : 1449464446888707748
+     type_code : 15
+     code : |1-
+      // Summary: Modify the home photo of the site
+      // Syntax:
+      //[ <Result> = ] ModifyHomePhoto (<sFilePath> is string)
+      //
+      // Parameters:
+      //	sFilePath (ANSI string): Path of the file for the new logo
+      // Return value:
+      // 	boolean: True if the modification was performed, False otherwise
+      //
+      
+      //// Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure ModifyHomePhoto(sFilePath is string)
+      
+      // Local variables
+      PhotoImage 		is Image
+      sPhotoPath	is string
+      sPathGenerationFile is string
+      
+      // Note the modification of configuration
+      NotifyConfigurationModification("Home photo modification")
+      
+      // Check the existence of the file
+      if fFileExist(sFilePath) = False then
+      	AddError("The file for the new photo is not accessible")
+      	return False
+      end
+      
+      // Build the file name for the generation image
+      sPathGenerationFile = CompleteDir(sReturnGenerationDir()) + fExtractPath(sFilePath,fFile+fExtension)
+      
+      // Is the image not too big?
+      PhotoImage = sFilePath
+      if PhotoImage.Height > 600 _or_ PhotoImage.Width > 800  then
+      	
+      	// Resize the image
+      	if dResize(PhotoImage,800,600,drHomotheticCentered + drHighQuality) = False then
+      		AddError("The image provided for the photo could not be resized",ErrorInfo())
+      		// This is not a fatal error
+      	end
+      	
+      	sExtension is string = Upper(fExtractPath(sFilePath,fExtension))
+      	switch sExtension
+      		case ".PNG"
+      			// Save the image 
+      			if dSaveImagePNG(PhotoImage,sPathGenerationFile) = False then
+      				AddError("An error occurred while saving the photo",ErrorInfo())
+      				return False
+      			end
+      			
+      		case ".JPEG", ".JPG" :
+      			// Save the image 
+      			if dSaveImageJPEG(PhotoImage,sPathGenerationFile) = False then
+      				AddError("An error occurred while saving the photo",ErrorInfo())
+      				return False
+      			end
+      			
+      	end
+      	
+      else
+      	if fCopyFile(sFilePath,sPathGenerationFile) = False then
+      		AddError("An error occurred while copying the photo")
+      		return False
+      	end
+      end
+      
+      // Copy the photo into the authorized _WEB directory
+      sPhotoPath = CompleteDir(sReturnDirWebUpload())+"photo_home" +  fExtractPath(sFilePath,fExtension)
+      if fCopyFileWebFolder(sPathGenerationFile,sPhotoPath) = False then
+      	AddError("An error occurred while deploying the photo",ErrorInfo())
+      	return False
+      end
+      
+      
+      // Delete the generation file
+      if fFileExist(sPathGenerationFile) = True then
+      	if fDelete(sPathGenerationFile) = False then
+      		AddError("Unable to delete the temporary generation file",ErrorInfo())
+      		// Non-fatal error
+      	end
+      end
+      
+      
+      // Build the path of the image in relation to fWebDir
+      sPhotoPath = Replace(sPhotoPath,fWebDir(),"")
+      
+      sPhotoPath = Replace(sPhotoPath,"\","/")
+      if Left(sPhotoPath,1)~="/" then sPhotoPath = Right(sPhotoPath,Length(sPhotoPath)-1)
+      
+      // Save the photo in database
+      if StoreParameter(csAdmin_PhotoHome,sPhotoPath,CN_STRING) = False then
+      	return False
+      end
+      
+      // Delete the temporary file
+      if fDelete(sFilePath) = False then
+      	AddError("The temporary photo file could not be deleted",ErrorInfo())
+      	// This is not a fatal error
+      end
+      
+      // Modification successfully performed
+      return True
+      
+      case exception:
+      AddError("An exception was detected",ExceptionInfo())
+      return False
+     type : 458752
+   -
+     name : ReadTextContactForm
+     procedure_id : 1449464446888773284
+     type_code : 15
+     code : |1-
+      // Summary: Returns the text specified when taking contact
+      // Syntax:
+      //[ <Result> = ] ReadTextContactForm ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	Undefined type: Specified text
+      
+      procedure ReadTextContactForm()
+      
+      return GetParameter(csAdmin_TextContactForm,"")
+     type : 458752
+   -
+     name : ModifyTextContactForm
+     procedure_id : 1449464446888838820
+     type_code : 15
+     code : |1-
+      // Summary: Modifies the text specified when taking contact
+      // Syntax:
+      //[ <Result> = ] ModifyTextContactForm (<sContactText> is string)
+      //
+      // Parameters:
+      //	sContactText (ANSI string): New text
+      // Return value:
+      // 	boolean: True if the modification was performed, False otherwise
+      //
+      
+      procedure ModifyTextContactForm(sContactText is string)
+      
+      // Note the modification of configuration
+      NotifyConfigurationModification("Text modification", ReadTextContactForm(),sContactText)
+      
+      return StoreParameter(csAdmin_TextContactForm,sContactText,CN_STRING)
+     type : 458752
+   -
+     name : ReadImageWatermark
+     procedure_id : 1449464446888904356
+     type_code : 15
+     code : |1+
+      // Summary: Returns the image of the watermark
+      // Syntax:
+      //[ <Result> = ] ReadWatermarkImage ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	ANSI string: Empty buffer if no watermark image to apply
+      
+      procedure ReadImageWatermark()
+      
+      // Local variables
+      sWatermarkFile is string
+      
+      // Read the logo
+      sWatermarkFile = GetParameter(csAdmin_WatermarkImage,"")
+      if sWatermarkFile = "" then return ""
+      
+      // Return the logo 
+      return sWatermarkFile
+     type : 458752
+   -
+     name : ReadSiteName
+     procedure_id : 1449464446888969892
+     type_code : 15
+     code : |1-
+      // Summary: Returns the text specified in site name
+      // Syntax:
+      //[ <Result> = ] ReadSiteName ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	Undefined type: Name of the site
+      //
+      
+      procedure ReadSiteName()
+      
+      
+      return GetParameter(csAdmin_SiteName,"")
+     type : 458752
+   -
+     name : ModifySiteName
+     procedure_id : 1449464446889035428
+     type_code : 15
+     code : |1-
+      // Summary: Modifies the name specified for the site
+      // Syntax:
+      //[ <Result> = ] ModifySiteName (<sSiteName> is string)
+      //
+      // Parameters:
+      //	sSiteName (ANSI string): New specified name
+      // Return value:
+      // 	boolean: True if the modification was performed, False otherwise
+      
+      procedure ModifySiteName(sSiteName is string)
+      
+      // Note the modification of configuration
+      NotifyConfigurationModification("Website name modification", ReadSiteName(), sSiteName)
+      
+      return StoreParameter(csAdmin_SiteName,sSiteName,CN_STRING)
+     type : 458752
+   -
+     name : ModifySMTPConfiguration
+     internal_properties : CAAAAAgAAADebABpFDPValyY1BmMIrllzdgiQ038FvZ6IujhUhorVXJYHclctgFAaPPYSMYJo5w/CdTRLpTN2tV/fGRg/V7LeFu0l8IJDVjpgnnugQBLNWIfxAoqbrk=
+     procedure_id : 1449464446889100964
+     type_code : 15
+     code : |1-
+      // Summary: Modifies the configuration of the SMTP server 
+      // Syntax:
+      //[ <Result> = ] ModifySMTPConfiguration (<stNewConfiguration> is ST_SMTP_CONFIGURATION)
+      //
+      // Parameters:
+      //	stNewConfiguration (ST_SMTP_CONFIGURATION): New configuration of the SMTP server
+      // Return value:
+      // 	boolean: True if the modification was performed, False otherwise
+      //
+      // Example:
+      // Indicate an example.
+      //// Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure ModifySMTPConfiguration(stNewConfiguration is ST_SMTP_CONFIGURATION)
+      
+      // Local variables
+      sSerializedConfiguration	is string
+      
+      // Note the modification of configuration
+      NotifyConfigurationModification("Modification of the SMTP server configuration")
+      
+      // Serialization
+      when exception in
+      	Serialize(stNewConfiguration,sSerializedConfiguration,psdXML)
+      do
+      	AddError("A format problem has been detected",ErrorInfo())
+      	return False
+      end
+      
+      // Save in database
+      if StoreParameter(csAdmin_SMTPCONFIG, sSerializedConfiguration, CN_STRING) = False then	
+      	return False
+      end
+      
+      // Modification successfully performed
+      return True
+      
+      case exception:
+      	AddError("Exception detected",ExceptionInfo(errFullDetails))
+      	return False
+     type : 458752
+   -
+     name : ReadSMTPConfiguration
+     internal_properties : CAAAAAgAAAAcLRYdm59qa6/rsb6vCyn4LNFnnXAkaRuxeOXB2npuIJ0fXVo/jO0pO3Dzv9x5VTLgU+/0YWV6aAaB3c/PRulvMak6og7y6iYkyqph0GOsoRWt2kzJgr8FzY6EeeybbYBR4addzNTAzPyiqg4PqA==
+     procedure_id : 1449464446889166500
+     type_code : 15
+     code : |1+
+      // Summary: Returns the configuration of the SMTP server 
+      // Syntax:
+      //[ <Result> = ] ReadSMTPConfiguration ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	ST_SMTP_CONFIGURATION: // 	
+      //// Example:
+      // Indicate an example.
+      //// Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure ReadSMTPConfiguration()
+      
+      // Local variables
+      stConfiguration 			is ST_SMTP_CONFIGURATION
+      sSerializedConfiguration	is string
+      
+      // Default configuration
+      stConfiguration.nPort = 25
+      stConfiguration.sServerAddress = "localhost"
+      
+      // Retrieve the stored content
+      sSerializedConfiguration = GetParameter(csAdmin_SMTPCONFIG, "")
+      
+      // Deserialization
+      if sSerializedConfiguration <> "" then
+      	when exception in
+      		Deserialize(stConfiguration,sSerializedConfiguration,psdXML)
+      	do
+      		AddError("A format problem has been detected",ErrorInfo())
+      	end
+      else
+      	
+      end
+      
+      // Return the configuration
+      return stConfiguration
+      
+      case exception:
+      	AddError("Exception detected",ExceptionInfo(errFullDetails))
+      	return stConfiguration
+     type : 458752
+   -
+     name : ReadRecipientEmailAddress
+     procedure_id : 1449464446889232036
+     type_code : 15
+     code : |1-
+      // Summary: Retrieves the recipient email address
+      // Syntax:
+      //[ <Result> = ] ReadRecipientEmailAddress ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	Undefined type: 
+      
+      procedure ReadRecipientEmailAddress()
+      
+      
+      return GetParameter(csAdmin_RecipientEmail,"")
+     type : 458752
+   -
+     name : ReadSenderEmailAddress
+     procedure_id : 1449464446889297572
+     type_code : 15
+     code : |1-
+      // Summary: Retrieves the sender email address
+      // Syntax:
+      //[ <Result> = ] ReadSenderEmailAddress ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	Undefined type: 
+      
+      procedure ReadSenderEmailAddress()
+      
+      return GetParameter(csAdmin_SenderEmail,"")
+     type : 458752
+   -
+     name : ReadSiteHomePage
+     procedure_id : 1449464446889363108
+     type_code : 15
+     code : |1-
+      // Summary: Returns the home page of the site
+      // Syntax:
+      //[ <Result> = ] ReadSiteHomePage ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	Undefined type: Name of the home page of the site
+      
+      procedure ReadSiteHomePage()
+      
+      // Return the home page
+      return GetParameter(csAdmin_HomePage, "PAGE_Home")
+     type : 458752
+   -
+     name : sErrorInfoBackOffice
+     procedure_id : 1449464446889428644
+     type_code : 15
+     code : |1-
+      // Summary: Returns the error if there was one (empty string in this case)
+      // Syntax:
+      //[ <Result> = ] sErrorInfoBackOffice ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	ANSI string: Text of the error
+      
+      procedure sErrorInfoBackOffice()
+      
+      return sReturnError()
+     type : 458752
+   -
+     name : RestoreDefaultSiteLogo
+     internal_properties : CAAAAAgAAADebABpFDPValyY1BmMIrllzdgiQ038FvZ6IujhUhorVXJYHclctgFAaPPYSMYJo5w/CdTRLpTN2tV/fGRg/V7LeFu0l8IJDVjpgnnugQBLNWIfxAoqbrk=
+     procedure_id : 1449464446889494180
+     type_code : 15
+     code : |1-
+      // Summary: Restores the default logo of the site
+      // Syntax:
+      //[ <Result> = ] RestoreDefaultSiteLogo ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	boolean: True if the restore operation was performed, False otherwise
+      //
+      // Example:
+      // Indicate an example.
+      //// Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure RestoreDefaultSiteLogo()
+      
+      
+      // Note the modification of configuration
+      NotifyConfigurationModification("Restore default logo")
+      
+      // Save the logo in database
+      if StoreParameter(csAdmin_SiteLogo,CN_DefaultLogo,CN_STRING) = False then
+      	return False
+      end
+      
+      // Modification successfully performed
+      return True
+      
+      case exception:
+      	AddError("An exception was detected",ExceptionInfo())
+      	return False
+     type : 458752
+   -
+     name : ModifyRecipientEmailAddress
+     procedure_id : 1449464446889559716
+     type_code : 15
+     code : |1-
+      // Summary: Modifies the email address used for taking contact (send a copy)
+      // Syntax:
+      //[ <Result> = ] ModifyRecipientEmailAddress (<sEmailAddress> is string)
+      //
+      // Parameters:
+      //	sEmailAddress (ANSI string): New email address
+      // Return value:
+      // 	boolean: True if the modification was performed, False otherwise
+      
+      procedure ModifyRecipientEmailAddress(sEmailAddress is string)
+      
+      
+      // Note the modification of configuration
+      NotifyConfigurationModification("Modification of the recipient email address",ReadRecipientEmailAddress(),sEmailAddress)
+      
+      
+      return  StoreParameter(csAdmin_RecipientEmail,sEmailAddress,CN_STRING)
+     type : 458752
+   -
+     name : ModifySenderEmailAddress
+     procedure_id : 1449464446889625252
+     type_code : 15
+     code : |1-
+      // Summary: Modifies the email address used for taking contact
+      // Syntax:
+      //[ <Result> = ] ModifySenderEmailAddress (<sEmailAddress> is string)
+      //
+      // Parameters:
+      //	sEmailAddress (ANSI string): New email address
+      // Return value:
+      // 	boolean: True if the modification was performed, False otherwise
+      //
+      // Example:
+      // Indicate an example.
+      //
+      procedure ModifySenderEmailAddress(sEmailAddress is string)
+      
+      
+      // Note the modification of configuration
+      NotifyConfigurationModification("Modification of the sender email address",ReadSenderEmailAddress(),sEmailAddress)
+      
+      
+      return  StoreParameter(csAdmin_SenderEmail,sEmailAddress,CN_STRING)
+     type : 458752
+   -
+     name : RestoreDefaultHomePhoto
+     internal_properties : CAAAAAgAAADebABpFDPValyY1BmMIrllzdgiQ038FvZ6IujhUhorVXJYHclctgFAaPPYSMYJo5w/CdTRLpTN2tV/fGRg/V7LeFu0l8IJDVjpgnnugQBLNWIfxAoqbrk=
+     procedure_id : 1449464446889690788
+     type_code : 15
+     code : |1-
+      // Summary: Restores the default home photo of the site
+      // Syntax:
+      //[ <Result> = ] RestoreDefaultHomePhoto ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	boolean: True if the restore operation was performed, False otherwise
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure RestoreDefaultHomePhoto()
+      
+      
+      // Note the modification of configuration
+      NotifyConfigurationModification("Restore default home image")
+      
+      // Save the photo in database
+      if StoreParameter(csAdmin_PhotoHome, CN_DefaultHomePhoto,CN_STRING) = False then
+      	return False
+      end
+      
+      // Modification successfully performed
+      return True
+      
+      case exception:
+      	AddError("An exception was detected",ExceptionInfo())
+      	return False
+     type : 458752
+   -
+     name : ModifyWatermarkOptions
+     internal_properties : CAAAAAgAAADebABpFDPValyY1BmMIrllzdgiQ038FvZ6IujhUhorVXJYHclctgFAaPPYSMYJo5w/CdTRLpTN2tV/fGRg/V7LeFu0l8IJDVjpgnnugQBLNWIfxAoqbrk=
+     procedure_id : 1449464446889756324
+     type_code : 15
+     code : |1-
+      // Summary: Modifies the watermark options
+      // Syntax:
+      //[ <Result> = ] ModifyWatermarkOptions (<stNewWatermarkOptions> is ST_WATERMARK_OPTIONS, <iWatermarkImage> is Image)
+      //
+      // Parameters:
+      //	stNewWatermarkOptions (ST_WATERMARK_OPTIONS): New options for the watermark
+      //	iWatermarkImage (Image): Image of the watermark
+      // Return value:
+      // 	boolean: True if the modification was performed, False otherwise
+      //// Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure ModifyWatermarkOptions(stNewWatermarkOptions is ST_WATERMARK_OPTIONS, iWatermarkImage is Image)
+      
+      // Local variables
+      sSerializedOptions	is string
+      sPathGenerationFile is string
+      sWatermarkPath is string
+      
+      // Note the modification of configuration
+      NotifyConfigurationModification("Modification of the watermark")
+      
+      // Serialization
+      when exception in
+      	Serialize(stNewWatermarkOptions,sSerializedOptions,psdXML)
+      do
+      	AddError("A format problem has been detected",ErrorInfo())
+      	return False
+      end
+      
+      // Save in database
+      if StoreParameter(csAdmin_WatermarkOptions, sSerializedOptions, CN_STRING) = False then	
+      	return False
+      end
+      
+      
+      // Build the file name for the generation image
+      sPathGenerationFile = CompleteDir(sReturnGenerationDir()) + CN_Watermark
+      
+      if dSaveImagePNG(iWatermarkImage,sPathGenerationFile) = False then
+      	AddError("An error occurred while saving the watermark image file")
+      	return False
+      end
+      
+      // Copy the image file of the watermark into the authorized _WEB directory
+      sWatermarkPath = CompleteDir(sReturnDirWebUpload())+CN_Watermark
+      if fCopyFileWebFolder(sPathGenerationFile,sWatermarkPath) = False then
+      	AddError("An error occurred while deploying the watermark image file",ErrorInfo())
+      	return False
+      end
+      
+      
+      // Delete the generation file
+      if fFileExist(sPathGenerationFile) = True then
+      	if fDelete(sPathGenerationFile) = False then
+      		AddError("Unable to delete the temporary generation file",ErrorInfo())
+      		// Non-fatal error
+      	end
+      end
+      
+      // Build the path of the image in relation to fWebDir
+      sWatermarkPath = Replace(sWatermarkPath,fWebDir(),"")
+      
+      sWatermarkPath = Replace(sWatermarkPath,"\","/")
+      if Left(sWatermarkPath,1)~="/" then sWatermarkPath = Right(sWatermarkPath,Length(sWatermarkPath)-1)
+      
+      // Save the watemark in database
+      if StoreParameter(csAdmin_WatermarkImage,sWatermarkPath,CN_STRING) = False then
+      	return False
+      end
+      
+      // Modification successfully performed
+      return True
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo(errFullDetails))
+      return False
+     type : 458752
+   -
+     name : ReadWatermarkOptions
+     internal_properties : CAAAAAgAAADebABpFDPValyY1BmMIrllzdgiQ038FvZ6IujhUhorVXJYHclctgFAaPPYSMYJo5w/CdTRLpTN2tV/fGRg/V7LeFu0l8IJDVjpgnnugQBLNWIfxAoqbrk=
+     procedure_id : 1449464446889821860
+     type_code : 15
+     code : |1+
+      // Summary: Returns the watermark options
+      // Syntax:
+      //[ <Result> = ] ReadWatermarkOptions ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	ST_WATERMARK_OPTIONS: 
+      //// Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure ReadWatermarkOptions()
+      
+      // Local variables
+      stOptions 			is ST_WATERMARK_OPTIONS
+      sSerializedOptions	is string
+      
+      // Default options
+      stOptions.sWatermarkText = ""
+      stOptions.sFont = "Arial"
+      stOptions.nSize = 12
+      stOptions.nColor = Black
+      stOptions.nAttributes = iNormal
+      stOptions.nAngle = 0
+      stOptions.nOpacity = 100
+      stOptions.nPosX = 0
+      stOptions.nPosY = 0
+      
+      
+      // Retrieve the stored content
+      sSerializedOptions = GetParameter(csAdmin_WatermarkOptions, "")
+      
+      // Deserialization
+      if sSerializedOptions <> "" then
+      	when exception in
+      		Deserialize(stOptions,sSerializedOptions,psdXML)
+      	do
+      		AddError("A format problem has been detected",ErrorInfo())
+      	end
+      else
+      	
+      end
+      
+      // Return the options
+      return stOptions
+      
+      case exception:
+      	AddError("Exception detected",ExceptionInfo(errFullDetails))
+      	return stOptions
+     type : 458752
+   -
+     name : ReadRequestForWatermarkIntegration
+     procedure_id : 1449464446889887396
+     type_code : 15
+     code : |1-
+      // Summary: Indicates whether a watermark must be included in the photo thumbnails
+      // Syntax:
+      //[ <Result> = ] ReadRequestForWatermarkIntegration ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	Undefined type: True to include the watermark, False otherwise
+      
+      procedure ReadRequestForWatermarkIntegration()
+      
+      return GetParameter(csAdmin_IncludeWatermark,False)
+     type : 458752
+   -
+     name : ModifyRequestForWatermarkIntegration
+     procedure_id : 1449464446889952932
+     type_code : 15
+     code : |1-
+      // Summary: Modifies the display status of the site name on the main banner
+      // Syntax:
+      //[ <Result> = ] ModifyRequestForWatermarkIntegration (<bIncludeWatermark> is boolean)
+      //
+      // Parameters:
+      //	bIncludeWatermark (boolean): True to include the watermark, False otherwise
+      // Return value:
+      // 	boolean: True if the modification was performed, False otherwise
+      
+      procedure ModifyRequestForWatermarkIntegration(bIncludeWatermark is boolean)
+      
+      // Note the modification of configuration
+      NotifyConfigurationModification("Modification of the watermark integration status", ReadRequestForWatermarkIntegration(), ""+bIncludeWatermark)
+      
+      return StoreParameter(csAdmin_IncludeWatermark,bIncludeWatermark,CN_INTEGER)
+     type : 458752
+  procedure_templates : []
+  property_templates : []
+ code_parameters :
+  internal_properties : CAAAAAgAAACVGQgYbalU7DKC3oH4ItDrjtcTHXXV/EuH8q0IbhyQlw==
+  original_name : COL_SansNom1
+resources :
+ string_res :
+  identifier : 0x106dafe4003c9ab5
+  internal_properties : CAAAAAgAAACm76HWfKGWp33VjXInA4cRlqArlgTTA862QGt72W2ld5Y=
+  strings :
+   -
+     text :
+      en-GB : Unable to restore the default logo
+     index : 1
+custom_note :
+ internal_properties : CAAAAAgAAABtB9HWVzrXO2+4NDRVK0vmzaNKrCKqH1DBX30lMmGZ

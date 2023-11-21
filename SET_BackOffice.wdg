@@ -1,0 +1,116 @@
+#To edit and compare internal_properties, use WINDEV integrated tools.
+#Internal properties refer to the properties of controls in windows, reports, etc.
+info :
+ name : SET_BackOffice
+ major_version : 28
+ minor_version : 0
+ type : 7
+ description : ""
+ subtype : 0
+procedure_set :
+ identifier : 0x141d883c1f3304fe
+ internal_properties : CAAAAAgAAABGLu41kG7fjQV3iS4F72qmnKaNh5694reolNKIW0iw
+ code_elements :
+  type_code : 31
+  p_codes :
+   -
+     code : |1+
+      
+      constant
+      	cnRightsNotConnected		= 0
+      	cnAdministratorRights		= 1
+      	cnSuperUserRights	= 2
+      end
+      
+     type : 720896
+  procedures :
+   -
+     name : bIsConnectedAsAdmin
+     procedure_id : 1449464446886085886
+     type_code : 15
+     code : |1-
+      // Summary: Is the user identified as administrator
+      // Syntax:
+      //[ <Result> = ] bIsConnectedAsAdmin ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	boolean: True if administrator
+      //
+      
+      procedure private bIsConnectedAsAdmin()
+      
+      // Check the rights
+      if SET_SiteParameters.gnUserRights = cnAdministratorRights then
+      	return True
+      else
+      	return False
+      end
+     type : 458752
+   -
+     name : ConnectionBackOffice
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464446886151422
+     type_code : 15
+     code : |1-
+      // Summary: Used to connect to the BackOffice
+      // Syntax:
+      //[ <Result> = ] BackOfficeConnection (<sUserName> is string, <sPassword> is string)
+      //
+      // Parameters:
+      //	sUserName (ANSI string): User name
+      //	sPassword (ANSI string): Password
+      // Return value:
+      // 	boolean: True if the user is connected, False otherwise
+      // Automatic process of exceptions: run CASE EXCEPTION:
+      //
+      
+      procedure public ConnectionBackOffice(sUserName is string, sPassword is string)
+      
+      
+      // Not connected by default
+      SET_SiteParameters.gsNameCurrentUser = ""
+      SET_SiteParameters.gnUserRights = cnRightsNotConnected
+      
+      
+      // Write into the history
+      NotifyInformation(StringBuild("Attempt to connect with the user: '%1'",sUserName))
+      
+      
+      // Administrator?
+      if GetParameter(csAdmin_Administrator_Login,csAdmin_Default_Login) ~= sUserName then
+      	if GetParameter(csAdmin_Administrator_PWD,csAdmin_Default_Login) ~= sPassword then		
+      		// Connected as Administrator
+      		SET_SiteParameters.gsNameCurrentUser = sUserName	
+      		SET_SiteParameters.gnUserRights = cnAdministratorRights
+      		
+      		// Write into the history
+      		NotifyInformation(StringBuild("'%1' logged in as as administrator",sUserName))
+      		
+      		return True
+      	end
+      end
+      
+      
+      // Write into the history
+      NotifyInformation(StringBuild("'%1' could not log in",sUserName))
+      
+      // By default, the user is not connected
+      return False
+      
+      case exception:	
+      AddError("Exception detected in ConnectionBackOffice",ExceptionInfo())
+      return False
+     type : 458752
+  procedure_templates : []
+  property_templates : []
+ code_parameters :
+  internal_properties : CAAAAAgAAACVGQgYbalU7DKC3oH4ItDrjtcTHXXV/EuH8q0IbhyQlw==
+  original_name : COL_SansNom1
+resources :
+ string_res :
+  identifier : 0x1fbe19c40af3ce2b
+  internal_properties : CAAAAAgAAACm76HWfKGWp33VjXInA4cRlqArlgTTA862QGt72W2ld5Y=
+custom_note :
+ internal_properties : CAAAAAgAAABtB9HWVzrXO2+4NDRVK0vmzaNKrCKqH1DBX30lMmGZ

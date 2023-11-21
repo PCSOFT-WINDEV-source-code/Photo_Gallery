@@ -1,0 +1,371 @@
+#To edit and compare internal_properties, use WINDEV integrated tools.
+#Internal properties refer to the properties of controls in windows, reports, etc.
+info :
+ name : SET_SiteParameters
+ major_version : 28
+ minor_version : 0
+ type : 7
+ description : ""
+ subtype : 0
+procedure_set :
+ identifier : 0x141d883d1fc80b86
+ internal_properties : CAAAAAgAAABGLu41kG7fjQV3iS4F72qmnKaNh5694reolNKIW0iw
+ code_elements :
+  type_code : 31
+  p_codes :
+   -
+     code : |1-
+      
+      global
+      	// Manage the current user
+      	gsNameCurrentUser is string
+      	
+      	// Rights granted to the current user
+      	gnUserRights is int
+      	
+      	
+      constant 
+      	
+      	CN_HISTORY_OPETYPE_INFO		= 0
+      	CN_HISTORY_OPETYPE_MODIF		= 1
+      	CN_HISTORY_OPETYPE_ERROR	= 2
+      
+      end
+      
+      
+      private
+      // Manage the errors
+      gsTextSiteError		is string
+     type : 720896
+  procedures :
+   -
+     name : AddError
+     procedure_id : 1449464451190819718
+     type_code : 15
+     code : |1-
+      // Summary: Stores and returns an error
+      // Syntax:
+      //DisplayError (<sErrorText> is string [, <sTechnicalError> is string])
+      //
+      // Parameters:
+      //	sErrorText (ANSI string): Text of the error
+      //	sTechnicalError (ANSI string): Technical details of the error
+      // Return value:
+      // 	None
+      
+      
+      procedure AddError(sErrorText is string, sTechnicalError is string = HErrorInfo())
+      
+      // For the test mode, switch to assert
+      dbgAssert(False,"Error: "+sErrorText+CR+sTechnicalError)
+      
+      // As soon as a technical detail is available
+      if sTechnicalError = "" then
+      	gsTextSiteError = gsTextSiteError + [CR] + sErrorText
+      else
+      	gsTextSiteError = gsTextSiteError + [CR] + sErrorText + CR + sTechnicalError
+      end	
+      
+      // Write into the history
+      _AddSiteHistory(CN_HISTORY_OPETYPE_ERROR,sErrorText+CR+sTechnicalError+CR+dbgInfo(dbgStack),*,*)
+     type : 458752
+   -
+     name : sReturnDirWebUpload
+     procedure_id : 1449464451190885254
+     type_code : 15
+     code : |1-
+      // Summary: Returns the generation directory of photos
+      // Syntax:
+      //[ <Result> = ] sReturnWebUploadDir ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	ANSI string: Directory of photo thumbnails
+      
+      procedure sReturnDirWebUpload()
+      
+      // Local variables
+      sUploadDir is string
+      
+      sUploadDir = fWebDir()+["\"]+"img_gen"
+      
+      // Does the directory exist?
+      if fDirectoryExist(sUploadDir) = False then
+      	fMakeDir(sUploadDir)
+      end
+      
+      
+      return sUploadDir
+     type : 458752
+   -
+     name : _AddSiteHistory
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451190950790
+     type_code : 15
+     code : |1+
+      // Summary: Adds an information or an error to the site history
+      // Syntax:
+      //_AddSiteHistory (<nOperationType> is int, <sOperationDetails> is string [, <sValueBefore> is string [, <sValueAfter> is string]])
+      //
+      // Parameters:
+      //	nOperationType (integer): type of operation (see the CN_HISTORY_TYPEXXXX constants)
+      //	sOperationDetails (ANSI string): Details of the operation or details of the error
+      //	sValueBefore (ANSI string - default value=""): Value before modification
+      //	sValueAfter (ANSI string - default value=""): Value after modification
+      // Return value:
+      // 	None
+      //
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      //	bSendError (boolean - default value=1): Sends the error to the WebMaster if requested
+      procedure _AddSiteHistory(nOperationType is int, sOperationDetails is string, sValueBefore is string="", sValueAfter is string ="")//, bSendError is boolean = True)
+      
+      // Initialize the history
+      HReset(History)
+      
+      // Write the automatic information
+      History.DateTime = DateSys()+TimeSys()
+      History.UserName	= gsNameCurrentUser
+      
+      
+      // Take the IP address with return (for a proxy for example) and the direct IP address
+      History.IPAddress	= BrowserIPAddress(True)+" / "+BrowserIPAddress(False)
+      
+      
+      // Take the values passed in parameter
+      History.ValueBefore = sValueBefore
+      History.ValueAfter = sValueAfter
+      History.OperationDetails = sOperationDetails
+      History.typeOperation = nOperationType
+      
+      // Addition in database
+      if HAdd(History) = False then
+      	dbgAssert(False,"Unable to save history")
+      	fSaveText(fDataDir()+["\"]+"dump_error_"+DateSys()+"_"+TimeSys()+".log","Error while saving history: "+HErrorInfo())
+      end
+      
+      if nOperationType = CN_HISTORY_OPETYPE_ERROR then
+      //	 Notification in case of error
+      //	IF bSendError = True _and_ ReadNotificationIfErrorEnabled() = True THEN
+      //		SendMessageToWebMaster("Error detected on the site", ...
+      //		_sConvertText(StringBuild("An error was detected on the site on %1 at %2: %3",DateToString(DateSys()),TimeToString(TimeSys()),sOperationDetails)))
+      //	END
+      end
+      
+      case exception:
+      	dbgAssert(False,"Unable to save history")
+      	fSaveText(fDataDir()+["\"]+"dump_error_"+DateSys()+"_"+TimeSys()+".log","Error while saving history: "+HErrorInfo())
+     type : 458752
+   -
+     name : sReturnGenerationDir
+     internal_properties : CAAAAAgAAABow7SSmKXk8cqK55WKdsvitxRUzIpTpb6w2hQ1NVxKK4bTcQQBUnD9YNg6uI4WtQ4s3Ly1tg61ExiUbS6kpMz9N8g6IiwKr2rGnurIarvUhxTpx2/bfEFeKkeiXNEyjDHBILc9AvfjHG6phMNC/m8SKxmtpD7r7pVem5pUEz8t4NwmUDR9fKP++pdZv3I6Ixc2UuWYiwA=
+     procedure_id : 1449464451191016326
+     type_code : 15
+     code : |1-
+      // Summary: Returns the full path of the directory for generating the thumbnail
+      // Syntax:
+      //[ <Result> = ] sReturnGenerationDir ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	ANSI string: Thumbnail generation directory
+      //
+      // Example:
+      // Indicate an example.
+      //
+      procedure sReturnGenerationDir()
+      
+      // Local variables
+      sGenDir is string = fDataDir()+["\"]+"gen"
+      
+      // Does the generation directory exist?
+      if fDirectoryExist(sGenDir) = False then
+      	fMakeDir(sGenDir)
+      end
+      
+      return sGenDir
+     type : 458752
+   -
+     name : NotifyConfigurationModification
+     procedure_id : 1449464451191081862
+     type_code : 15
+     code : |1-
+      // Summary: Saves a modification of configuration
+      // Syntax:
+      //NotifyConfigurationModification (<sModificationText> is string [, <sValueBefore> is string [, <sValueAfter> is string]])
+      //
+      // Parameters:
+      //	sModificationText (ANSI string): Modification performed
+      //	sValueBefore (ANSI string - default value=""): Value before modification
+      //	sValueAfter (ANSI string - default value=""): Value after modification
+      // Return value:
+      // 	None
+      
+      procedure NotifyConfigurationModification(sTextModification is string, sValueBefore is string = "", sValueAfter is string = "")
+      
+      // Here, we must add 
+      // the user name, the time, the IP address, the stack?
+      // Then, save in database
+      
+      _AddSiteHistory(CN_HISTORY_OPETYPE_MODIF,sTextModification,sValueBefore,sValueAfter)
+     type : 458752
+   -
+     name : DisplayError
+     procedure_id : 1449464451191147398
+     type_code : 15
+     code : |1+
+      // Summary: Manages how errors are displayed
+      // Syntax:
+      //DisplayError (<sErrorText> is string[, <sTechnicalError> is string])
+      //
+      // Parameters:
+      //	sErrorText (string): Text of the error
+      //	sTechnicalError (string): Technical details of the error
+      // Return value:
+      // 	None
+      
+      procedure DisplayError(sErrorText is string, sTechnicalError is string = HErrorInfo())
+      
+      // For the test mode, switch to assert
+      dbgAssert(False,"Error: "+sErrorText+CR+sTechnicalError)
+      
+      // Write into the history
+      _AddSiteHistory(CN_HISTORY_OPETYPE_ERROR,sErrorText+CR+sTechnicalError)
+      
+      // Display error
+      Error(sErrorText,sTechnicalError)	
+     type : 458752
+   -
+     name : sReturnError
+     procedure_id : 1449464451191212934
+     type_code : 15
+     code : |1+
+      // Summary: Returns the error
+      // Syntax:
+      //[ <Result> = ] sReturnError ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	ANSI string: The error
+      
+      procedure sReturnError()
+      
+      return gsTextSiteError
+     type : 458752
+   -
+     name : NotifyInformation
+     procedure_id : 1449464451191278470
+     type_code : 15
+     code : |1-
+      // Summary: Details of the operation
+      // Syntax:
+      //NotifyInformation (<sOperationDetails> is string)
+      //
+      // Parameters:
+      //	sOperationDetails (ANSI string): Detailed text of the operation
+      // Return value:
+      // 	None
+      
+      procedure NotifyInformation(sOperationDetails is string)
+      
+      _AddSiteHistory(CN_HISTORY_OPETYPE_INFO,sOperationDetails)
+     type : 458752
+   -
+     name : sReturnUploadDir
+     internal_properties : CAAAAAgAAABIlgWTg7S0RY+87eAGIj1+c6kS3DQUjdYYPVVYTdQ3FRJlU4QWxdTumQZmMg+2s1YWslTyq4cIa/LjYqAqkoGg4b0z8jW3IZaBCbnB44aNdmOE8w2e90wyqF3/3AXuBlb1vT1T2I1Z4YJYY59fipPp48IvRqhJLMDeBtWC4E3R93ji5wbXITVW6TxPQl2oAmR6nlj/hr2tUKzORJl7XevOodJDUS7e+2a02Z4jmvq+Jf1ttMnvIAquLblePrLFPw==
+     procedure_id : 1449464451191344006
+     type_code : 15
+     code : |1-
+      // Summary: Returns the full path of the upload directory
+      // Syntax:
+      //[ <Result> = ] sReturnUploadDir ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	string: Upload directory
+      //
+      
+      procedure sReturnUploadDir()
+      
+      // Local variables
+      sUploadDir is string = fDataDir()+["\"]+"upload"
+      
+      // Does the upload directory exist?
+      if fDirectoryExist(sUploadDir) = False then
+      	fMakeDir(sUploadDir)
+      end
+      
+      return sUploadDir
+     type : 458752
+   -
+     name : sReturnWebDir
+     procedure_id : 1449464451191409542
+     type_code : 15
+     code : |1+
+      // Summary: Returns the Web directory with "UK" 
+      // Syntax:
+      //[ <Result> = ] sReturnWebDir ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	ANSI string: Directory of photo thumbnails
+      
+      procedure sReturnWebDir()
+      
+      // Local variables
+      sUploadDir is string
+      
+      sUploadDir = fWebDir() + ["\"]
+      
+      
+      return sUploadDir
+     type : 458752
+   -
+     name : TestHFSQLFile
+     procedure_id : 1449464451191475078
+     type_code : 15
+     code : |1+
+      // Summary: Checks the opening of the files
+      // Syntax:
+      //TestHFSQLFile ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	None
+      //
+      
+      procedure TestHFSQLFile()
+      
+      // Positions the exact-match check
+      HCheckStructure("*", hIdentical)
+      
+      when exception in
+      	// Checks the opening of all files
+      	HOpen("*")
+      	HClose("*")
+      	TestWriteResult(twrInfo, "Files without errors")
+      do
+      	// Problems during opening
+      	TestWriteResult(twrError, "Files with errors: " + ExceptionInfo(errMessage))
+      end
+     type : 458752
+  procedure_templates : []
+  property_templates : []
+ code_parameters :
+  internal_properties : CAAAAAgAAACVGQgYbalU7DKC3oH4ItDrjtcTHXXV/EuH8q0IbhyQlw==
+  original_name : COL_SansNom1
+resources :
+ string_res :
+  identifier : 0x1fbe19c30a14cc56
+  internal_properties : CAAAAAgAAACm76HWfKGWp33VjXInA4cRlqArlgTTA862QGt72W2ld5Y=
+custom_note :
+ internal_properties : CAAAAAgAAABtB9HWVzrXO2+4NDRVK0vmzaNKrCKqH1DBX30lMmGZ
+associated_test :
+ name : TEST_SET_SiteParameters.wxt

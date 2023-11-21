@@ -1,0 +1,709 @@
+#To edit and compare internal_properties, use WINDEV integrated tools.
+#Internal properties refer to the properties of controls in windows, reports, etc.
+info :
+ name : SET_ManageAlbums
+ major_version : 28
+ minor_version : 0
+ type : 7
+ description : ""
+ subtype : 0
+procedure_set :
+ identifier : 0x141d883d1f8808a8
+ internal_properties : CAAAAAgAAABGLu41kG7fjQV3iS4F72qmnKaNh5694reolNKIW0iw
+ code_elements :
+  type_code : 31
+  p_codes :
+   -
+     code : |1-
+      constant
+      	
+      	CS_CAPTION_ALBUMS = "Albums"
+      	
+      end
+      
+      // This structure corresponds to the structure described in the analysis for the Album file
+      // This structure is used to manage the backoffice
+      ST_Album is Structure
+      	AlbumID 			is int
+      	Title 				is string
+      	Specification 		is string
+      	ParentAlbumID		is int
+      	PhotoID		 	is int
+      	NbPhotos			is int
+      	
+      	arrSubAlbums	is array of ST_Album
+      end
+      
+      public
+      garrAlbums is array of ST_Album
+     type : 720896
+  procedures :
+   -
+     name : _AddAlbumToDatabase
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451186624680
+     type_code : 15
+     code : |1-
+      // Summary: Adds the album into the database 
+      // Syntax:
+      //[ <Result> = ] _AddAlbumToDatabase (<sTitle> is string, <sDescription> is string)
+      //
+      // Parameters:
+      //	sTitle (ANSI string): Title that will be given to the album
+      //	sDescription (ANSI string): Description that will be given to the album 
+      // Return value:
+      // 	integer: ID of the added album 
+      
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure private _AddAlbumToDatabase(sTitle is string, sDescription is string)
+      
+      
+      // Local variables
+      nAlbumID		is int	= -1
+      
+      // Initialize the record
+      HReset(Album)
+      
+      // Fill the information for the record
+      Album.Title = sTitle
+      Album.Specification = sDescription
+      
+      // Addition in database
+      if HAdd(Album) = False then
+      	AddError("Unable to add album")
+      	return -1
+      end
+      
+      // Store the identifier
+      nAlbumID = Album.AlbumID
+      
+      // Return the identifier of the album
+      return nAlbumID
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return -1
+     type : 458752
+   -
+     name : LoadAlbums
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451186690216
+     type_code : 15
+     code : |1-
+      // Summary: Loads the list of albums
+      // Syntaxe :
+      //[ <Résultat> = ] LoadAlbums ( [<bClearContent> est booléen])
+      //
+      // Paramètres :
+      //	bClearContent (booléen - valeur par défaut=1) : Do we have to clear everything beforehand?
+      // Traitement automatique des exceptions :   exécuter le bloc de code CAS EXCEPTION:
+      //
+      
+      // Return value:
+      // 	boolean: True if the load operation is performed, False otherwise
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      PROCÉDURE LoadAlbums( bClearContent is boolean = 1 )
+      
+      // Local variables
+      arrNewAlbums is array of ST_Album
+      stAlbum		is ST_Album
+      
+      if bClearContent = True then
+      	// Delete the previous content
+      	ArrayDeleteAll(garrAlbums)
+      end
+      
+      
+      // Retrieve the albums from the root
+      arrNewAlbums = Listalbums()
+      FOR EACH ELEMENT stAlbum of arrNewAlbums
+      	// Add to the album
+      	ArrayAdd(garrAlbums, stAlbum)
+      	// Does this album have children?
+      	LoadAlbums(False)
+      end
+      
+      return True
+      
+      case exception:
+      	AddError("Exception detected",ExceptionInfo())	
+      	return False
+     type : 458752
+   -
+     name : ReadAlbums
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451186755752
+     type_code : 15
+     code : |1-
+      // Summary: Returns the requested album
+      // Syntaxe :
+      //[ <Résultat> = ] ReadAlbums (<nSoughtAlbumID> est entier)
+      //
+      // Paramètres :
+      //	nSoughtAlbumID (entier) : Identifier of the album
+      // Traitement automatique des exceptions :   exécuter le bloc de code CAS EXCEPTION:
+      //
+      
+      // Return value:
+      // 	ST_Album: Content of the album
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      PROCÉDURE ReadAlbums( nSoughtAlbumID is int )
+      
+      // Local variables
+      nArrayIndex		is int
+      stAlbumErr			is ST_Album
+      
+      // Initialize the "error" album
+      stAlbumErr.AlbumID = -1 
+      
+      // Search for the news
+      nArrayIndex = ArraySeek(garrAlbums,asLinear,"AlbumID",nSoughtAlbumID)
+      if nArrayIndex <=0 then
+      	AddError("Album not found")
+      	return stAlbumErr
+      end
+      
+      // Return the album
+      return garrAlbums[nArrayIndex]
+      
+      case exception:
+      	AddError("Exception detected",ExceptionInfo())
+      	return stAlbumErr
+     type : 458752
+   -
+     name : ReadAlbumPhoto
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451186821288
+     type_code : 15
+     code : |1-
+      // Summary: Returns a photo found in an album
+      // Syntax:
+      //[ <Result> = ] ReadAlbumPhoto (<nAlbumID> is int)
+      //
+      // Parameters:
+      //	nAlbumID (integer): Identifier of the album
+      // Return value:
+      // 	ANSI string: Path of photo
+      //
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure ReadAlbumPhoto(nAlbumID is int)
+      
+      sPath is string 
+      QRY_PhotoRepresentingAlbum.pAlbumID = nAlbumID
+      QRY_PhotoRepresentingAlbum.pRole = ROLE_PHOTO_LARGE
+      
+      HExecuteQuery(QRY_PhotoRepresentingAlbum)
+      HReadFirst(QRY_PhotoRepresentingAlbum)
+      sPath = QRY_PhotoRepresentingAlbum.Path
+      
+      if sPath ~= "" then
+      	AddError("No photo for this album")
+      	return ""
+      else
+      	return sPath
+      end
+      
+      case exception:
+      	AddError("Exception detected",ExceptionInfo())
+      	return ""
+     type : 458752
+   -
+     name : DeleteAlbum
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451186886824
+     type_code : 15
+     code : |1-
+      // Summary: Delete the specified photo album
+      // Syntaxe :
+      //[ <Résultat> = ] DeleteAlbum (<nAlbumID> est entier)
+      //
+      // Paramètres :
+      //	nAlbumID (entier) : Identifier of the album to delete
+      // Traitement automatique des exceptions :   exécuter le bloc de code CAS EXCEPTION:
+      //
+      
+      // Return value:
+      // 	boolean: True if the deletion is performed, False otherwise
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      PROCÉDURE DeleteAlbum( nAlbumID is int )
+      
+      
+      // Search in database
+      HReadSeekFirst(Album, AlbumID,nAlbumID)
+      if HFound(Album) = False then
+      	AddError(<§@107456f600373ddf0001§>)
+      	return False
+      end
+      
+      // Deletion in database
+      if HDelete(Album) = False then
+      	AddError(<§@107456f600373ddf0002§>)
+      	return False
+      end
+      
+      // Update 
+      RefreshAlbums()
+      
+      // The deletion is performed properly by default
+      return True
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return False
+     type : 458752
+   -
+     name : ModifyAlbum
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451186952360
+     type_code : 15
+     code : |1+
+      // Summary: Modifies a photo album
+      // Syntaxe :
+      //[ <Résultat> = ] ModifyAlbum (<nSoughtAlbumID> est entier, <bufImage> est buffer, <sTitle> est chaîne, <sDescription> est chaîne)
+      //
+      // Paramètres :
+      //	nSoughtAlbumID (entier) : Identifier of the album to modify
+      //	bufImage (buffer) : New image of the album
+      //	sTitle (chaîne ANSI) : New title of the album
+      //	sDescription (chaîne ANSI) : New album description
+      // Traitement automatique des exceptions :   exécuter le bloc de code CAS EXCEPTION:
+      //
+      
+      // Return value:
+      // 	boolean: True if the album was updated, False otherwise
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      PROCÉDURE ModifyAlbum( local nSoughtAlbumID is int , local bufImage is buffer , local sTitle is string,  local sDescription is string)
+      // Local variables
+      
+      // Search in database
+      HReadSeekFirst(Album,AlbumID,nSoughtAlbumID)
+      if HFound(Album) = False then
+      	AddError("Album not found")
+      	return False
+      end
+      
+      // Fill the data
+      Album.Title 			= sTitle
+      Album.Specification 		= sDescription
+      
+      
+      // Generate the thumbnail
+      if bufImage<>"" then
+      	
+      //	Album.path = _GenerateFamilyThumbnail(bufImage,nSoughtFamilyID)
+      //	Album.PhotoID = 
+      end
+      
+      // Modification in database
+      if HModify(Album) = False then
+      	AddError("Unable to modify album")
+      	return False
+      end
+      
+      // Update
+      RefreshAlbums()
+      
+      
+      // The modification is performed properly by default
+      return True
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return False
+      
+     type : 458752
+   -
+     name : RefreshAlbums
+     procedure_id : 1449464451187017896
+     type_code : 15
+     code : |1+
+      // Summary: Refreshes the list of albums
+      // Syntax:
+      //RefreshAlbums ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	None
+      
+      procedure RefreshAlbums( )
+      
+      // Update the content
+      FileToArray(garrAlbums, Album, AlbumID)
+      
+     type : 458752
+   -
+     name : AddAlbum
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451187083432
+     type_code : 15
+     code : |1-
+      // Summary: Adds an album
+      // Syntaxe :
+      //[ <Résultat> = ] AddAlbum (<sTitle> est chaîne)
+      //
+      // Paramètres :
+      //	sTitle (chaîne ANSI) : Caption of the album
+      // Traitement automatique des exceptions :   exécuter le bloc de code CAS EXCEPTION:
+      //
+      
+      // Return value:
+      // 	integer: Identifier of the album, -1 if an error occurred
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      PROCÉDURE AddAlbum( sTitle is string)
+      
+      // Local variables
+      nAlbumID 	is int	= -1
+      
+      
+      // Initialize the record
+      HReset(Album)
+      
+      // Fill the data
+      Album.Title 		= sTitle
+      Album.PublicationDate = Today()
+      //Album.Description 	= sDescription
+      
+      
+      //// Is an image defined?
+      //IF bufImage = "" then
+      //	// Take the default image
+      //	bufImage = GetParameter(csAdmin_Image_Default_Album,"images/Bullet_Menu.png")
+      //END
+      
+      // Addition in database
+      if HAdd(Album) = False then
+      	AddError("Unable to add record")
+      	return nAlbumID
+      end
+      
+      // Store the created news
+      nAlbumID = Album.AlbumID
+      
+      // Storage in database
+      if HModify(Album) = False then
+      	AddError("Unable to modify record")
+      	return nAlbumID
+      end
+      
+      // Update 
+      RefreshAlbums()
+      
+      // Return the identifier of the album
+      return nAlbumID
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return nAlbumID
+     type : 458752
+   -
+     name : ReadNbPhotos
+     procedure_id : 1449464451187148968
+     type_code : 15
+     code : |1+
+      // Summary: Retrieves the number of photos found in the album whose ID is passed in parameter
+      // Syntax:
+      //[ <Result> = ] ReadNbPhotos (<nAlbumID>)
+      //
+      // Parameters:
+      //	nAlbumID: ID of the album whose number of photos is requested
+      // Return value:
+      // 	integer: Number of photos in this album
+      
+      procedure ReadNbPhotos(nAlbumID)
+      
+      nNbPhotos is int
+      
+      
+      //Finds the number of photos in this album
+      QRY_NbAlbumPhotos.pAlbumID = nAlbumID
+      
+      HExecuteQuery(QRY_NbAlbumPhotos)
+      
+      HReadFirst(QRY_NbAlbumPhotos)
+      
+      nNbPhotos = QRY_NbAlbumPhotos.NbPhotos
+      
+      return nNbPhotos
+      
+      
+      
+      
+     type : 458752
+   -
+     name : ReadAlbumTitle
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451187214504
+     type_code : 15
+     code : |1+
+      // Summary: Returns the title of the album whose ID is passed in parameter
+      // Syntax:
+      //[ <Result> = ] ReadAlbumTitle (<nSoughtAlbumID>)
+      //
+      // Parameters:
+      //	nSoughtAlbumID: ID of the album to find
+      // Return value:
+      // 	Undefined type:  
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure ReadAlbumTitle(nSoughtAlbumID)
+      
+      sTitle is string
+      
+      // Search in database
+      HReadSeekFirst(Album,AlbumID,nSoughtAlbumID)
+      
+      if HFound(Album) = False then
+      	AddError("Album not found")
+      	return False
+      end
+      
+      sTitle = Album.Title
+      
+      return sTitle 
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return ""
+     type : 458752
+   -
+     name : DeleteAlbumPhotos
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451187280040
+     type_code : 15
+     code : |1+
+      // Summary: Deletes all the photos from an album
+      // Syntax:
+      //[ <Result> = ] DeleteAlbumPhotos (<nAlbumID>)
+      //
+      // Parameters:
+      //	nAlbumID: ID of the album from which the photos must be deleted
+      // Return value:
+      // 	boolean: True if everything was ok, False otherwise
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure DeleteAlbumPhotos(nAlbumID)
+      
+      bSuccessful is boolean = True
+      nPos is int
+      
+      HReadSeekFirst(Photo,AlbumID, nAlbumID)
+      while HFound(Photo)
+      	
+      	nPos = HSavePosition(Photo)
+      	
+      	// Deletion in database
+      	if DeletePhoto( Photo.PhotoID ) = False then
+      		AddError("Some photos could not be deleted")
+      		bSuccessful = False
+      	end
+      	
+      	HRestorePosition(nPos)
+      	HReadNext(Photo)
+      end
+      
+      
+      return bSuccessful
+      
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return False
+     type : 458752
+   -
+     name : RemoveAlbumPhotos
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451187345576
+     type_code : 15
+     code : |1+
+      // Summary: Removes all the photos from an album
+      // Syntax:
+      //[ <Result> = ] RemoveAlbumPhotos (<nAlbumID>)
+      //
+      // Parameters:
+      //	nAlbumID: ID of the album from which all the photos must be removed
+      // Return value:
+      // 	Undefined type: True if successful
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure RemoveAlbumPhotos(nAlbumID)
+      
+      bSuccessful is boolean = True
+      nPos is int
+      
+      
+      for each Photo where AlbumID = nAlbumID
+      	
+      	nPos = HSavePosition(Photo)
+      	
+      	// Modification in database
+      	if RemovePhotoFromAlbum( Photo.PhotoID ) = False then
+      		AddError("Some photos could not be removed from the album")
+      		bSuccessful = False
+      	end
+      	
+      	HRestorePosition(nPos)
+      end
+      
+      return bSuccessful
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return nAlbumID
+      
+     type : 458752
+   -
+     name : ReadNbAlbums
+     procedure_id : 1449464451187411112
+     type_code : 15
+     code : |1+
+      // Summary: Returns the number of albums 
+      // Syntax:
+      //[ <Result> = ] ReadNbAlbums ()
+      //
+      // Parameters:
+      //	None
+      // Return value:
+      // 	integer: 
+      
+      procedure ReadNbAlbums()
+      
+      nNbAlbums is int 
+      
+      HExecuteQuery(QRY_NbAlbums)
+      
+      HReadFirst(QRY_NbAlbums)
+      
+      nNbAlbums = QRY_NbAlbums.NbAlbums
+      
+      return nNbAlbums 
+      
+     type : 458752
+   -
+     name : Listalbums
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451187476648
+     type_code : 15
+     code : |1-
+      // Summary: Lists the albums of a parent album
+      // Syntaxe :
+      //[ <Résultat> = ] Listalbums ()
+      //
+      // Paramètres :
+      //	Aucun
+      // Traitement automatique des exceptions :   exécuter le bloc de code CAS EXCEPTION:
+      //
+      
+      // Return value:
+      // 	array: array of ST_Album
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      PROCÉDURE Listalbums( )
+      
+      // Local variables
+      arrAlbums 	is array of ST_Album
+      stAlbumErr	is ST_Album
+      
+      // Configuration in case of error
+      stAlbumErr.AlbumID = -1
+      
+      
+      // For all the albums 
+      for each Album 
+      	// Create the structure
+      	stAlbum	is ST_Album
+      	FileToMemory(stAlbum, Album)
+      	
+      	stAlbum.NbPhotos = ReadNbPhotos(Album.AlbumID)
+      	
+      	
+      	// Add it to the array of albums
+      	ArrayAdd(arrAlbums, stAlbum)	
+      end
+      
+      // Return the array
+      return arrAlbums
+      
+      case exception:
+      	AddError("Exception detected",ExceptionInfo())
+      	ArrayAdd(arrAlbums, stAlbumErr)	
+      	return arrAlbums
+     type : 458752
+   -
+     name : ChangeAlbumTitle
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464451187542184
+     type_code : 15
+     code : |1+
+      // Summary: Modifies a photo album
+      // Syntaxe :
+      //[ <Résultat> = ] ChangeAlbumTitle (<nSoughtAlbumID> est entier, <sTitle> est chaîne)
+      //
+      // Paramètres :
+      //	nSoughtAlbumID (entier) : Identifier of the album to modify
+      //	sTitle (chaîne ANSI) : New title of the album
+      // Traitement automatique des exceptions :   exécuter le bloc de code CAS EXCEPTION:
+      //
+      
+      // Return value:
+      // 	boolean: True if the album was updated, False otherwise
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      PROCÉDURE ChangeAlbumTitle( local nSoughtAlbumID is int , local sTitle is string)
+      // Local variables
+      
+      // Search in database
+      HReadSeekFirst(Album,AlbumID,nSoughtAlbumID)
+      if HFound(Album) = False then
+      	AddError("Album not found")
+      	return False
+      end
+      
+      // Fill the data
+      Album.Title 			= sTitle
+      
+      
+      
+      // Modification in database
+      if HModify(Album) = False then
+      	AddError("Unable to modify album")
+      	return False
+      end
+      
+      // Update
+      RefreshAlbums()
+      
+      
+      // The modification is performed properly by default
+      return True
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      return False
+      
+     type : 458752
+  procedure_templates : []
+  property_templates : []
+ code_parameters :
+  internal_properties : CAAAAAgAAACVGQgYbalU7DKC3oH4ItDrjtcTHXXV/EuH8q0IbhyQlw==
+  original_name : COL_SansNom1
+resources :
+ string_res :
+  identifier : 0x107456f600373ddf
+  internal_properties : CAAAAAgAAACm76HWfKGWp33VjXInA4cRlqArlgTTA862QGt72W2ld5Y=
+  strings :
+   -
+     text :
+      en-GB : Album not found
+     index : 1
+   -
+     text :
+      en-GB : Unable to delete the photo
+     index : 2
+custom_note :
+ internal_properties : CAAAAAgAAABtB9HWVzrXO2+4NDRVK0vmzaNKrCKqH1DBX30lMmGZ

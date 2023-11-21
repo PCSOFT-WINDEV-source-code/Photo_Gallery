@@ -1,0 +1,232 @@
+#To edit and compare internal_properties, use WINDEV integrated tools.
+#Internal properties refer to the properties of controls in windows, reports, etc.
+info :
+ name : SET_SendingEmail
+ major_version : 28
+ minor_version : 0
+ type : 7
+ description : ""
+ subtype : 0
+procedure_set :
+ identifier : 0x141d883c1f74079e
+ internal_properties : CAAAAAgAAABGLu41kG7fjQV3iS4F72qmnKaNh5694reolNKIW0iw
+ code_elements :
+  type_code : 31
+  p_codes :
+   -
+     code : |1+
+      // Contact
+      gstConfig_SMTP is ST_SMTP_CONFIGURATION
+     type : 720896
+  procedures :
+   -
+     name : SendAccountMessage
+     internal_properties : CAAAAAgAAAAE3eca/BzgtaNQ6sWoq4eZ2ezG41P7EZDqUAQmRtex8BwmdcL/47drO7weLNUDnhvvyTH5gHPuzRrC8YKCuyPhqkn54Er9nGicMHkYlKIvj+zFK6d0Jsgojt8Zr+cT4xGnCjsVzR/wWqaNqzaCQ79v4FsB5Andu+jRdpGKha8xruayIKRYAQsOkTOX2bjXgU/KkUmA1Mld/A==
+     procedure_id : 1449464446890346398
+     type_code : 15
+     code : |1-
+      // Summary: Sending a message to a customer
+      // Syntax:
+      //[ <Result> = ] SendAccountMessage (<sEmailAddress> is string, <sSubject> is string, <sHTMLMessage> is string, <arrAttachments> is array)
+      //
+      // Parameters:
+      //	sEmailAddress (ANSI string): Client identifier of the recipient
+      //	sSubject (ANSI string): Subject of message
+      //	sHTMLMessage (ANSI string): Message in HTML format
+      //	arrAttachments (array): Array containing the attachments
+      // Return value:
+      // 	boolean: True if the email was successfully sent, False otherwise
+      //
+      // Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      // Automatic error processing: run CASE ERROR code block
+      //
+      
+      procedure SendAccountMessage(sEmailAddress is string, sSubject is string , sHTMLMessage is string, arrAttachments is array of strings)
+      
+      // Local variables
+      i 					is int
+      nUpperBound			is int
+      sRecipient		is string
+      sSender			is string
+      
+      // Read the configuration
+      gstConfig_SMTP    	 	= ReadSMTPConfiguration()
+      sRecipient			= ReadRecipientEmailAddress()
+      sSender				= ReadSenderEmailAddress()
+      
+      
+      // Reinitialize the variables 
+      EmailReset()
+      
+      // Start the SMTP session
+      if StartSMTPSession(gstConfig_SMTP) = False then return False
+      
+      // Fill the structure
+      Email.NbRecipient 	= 2
+      Email.Sender 		= sSender
+      Email.Recipient[1]	= sRecipient
+      Email.Recipient[2]	= sEmailAddress
+      Email.Subject 			= sSubject
+      Email.HTML				= sHTMLMessage
+      
+      // Is there any attachment?
+      if arrAttachments <> Null then
+      
+      	// Process the attachments
+      	Email.NbAttach = Dimension(arrAttachments)
+      	nUpperBound = Dimension(arrAttachments)
+      	// Attach the attachments
+      	for i = 1 _to_ nUpperBound
+      		Email.Attach[i] = arrAttachments[i]		
+      	end
+      else
+      	// No attachment
+      	Email.NbAttach = 0	
+      end
+      
+      
+      // Send the message
+      if EmailSendMessage(gstConfig_SMTP.sUserLogin) = False then
+      	AddError("The message was not sent: ",ErrorInfo())
+      	return False
+      end
+      
+      // Close the POP3 session
+      EmailCloseSession(gstConfig_SMTP.sUserLogin)	
+      
+      // The sending is successfully performed by default
+      return True
+      
+      case exception:
+      	AddError("Exception detected",ExceptionInfo())
+      	
+      	// Close the SMTP session
+      	EmailCloseSession(gstConfig_SMTP.sUserLogin)	
+      
+      	// Message not sent
+      	return False
+     type : 458752
+   -
+     name : StartSMTPSession
+     internal_properties : CAAAAAgAAAAeQeZWqR4YD9gNuw5ISpse4q5d4YfQh8vxSSLWonylqfGpzXAstIQfjtu5yNZJ9N/c91UXiZv53fcJCNn0zKQH2jXtD1BPimLproJX87E+1RbRiyhFUUvyPW0p6P5mipLcRRthNLb+/G4cHMU2fOcWaLmnLrlIMic+6HTcyeP/rQgO
+     procedure_id : 1449464446890411934
+     type_code : 15
+     code : |1-
+      // Summary: Starts an SMTP session
+      // Syntax:
+      //[ <Result> = ] StartSMTPSession (<stConfiguration>)
+      //
+      // Parameters:
+      //	stConfiguration: SMTP configuration for opening the session
+      // Return value:
+      // 	boolean: True if the session was started, False otherwise
+      //// Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure StartSMTPSession(stConfiguration is ST_SMTP_CONFIGURATION)
+      
+      // Configure the maximum time-out
+      EmailSetTimeOut(10)
+      
+      // Start the SMTP session
+      if stConfiguration.bSecuredMode = True then
+      	if EmailStartSMTPSession(stConfiguration.sUserLogin,stConfiguration.sUserPWD,stConfiguration.sServerAddress,stConfiguration.nPort,emailOptionSecuredTLS) = False then
+      		AddError("Unable to start the SMTP session",ErrorInfo())
+      		return False
+      	end
+      else
+      	if EmailStartSMTPSession(stConfiguration.sUserLogin,stConfiguration.sUserPWD,stConfiguration.sServerAddress,stConfiguration.nPort,emailOptionDefault) = False then
+      		AddError("Unable to start the SMTP session",ErrorInfo())	
+      		return False
+      	end	
+      end
+      
+      // The connection is established by default
+      return True
+      
+      case exception:
+      	AddError("Exception detected",ExceptionInfo())
+      	return False
+     type : 458752
+   -
+     name : SendContactMessage
+     internal_properties : CAAAAAgAAAAR4lreH2J4Rd3V+mugsaqaPcWRc4a891NpZJfs2OxfqFa5a92hvxVeSKTrhFvcWX4DMfp144kV6W9tlQg1duY9FWSL3glxb2OhliT9RXcYO65IOySiRO54Oq6F+pqJEiUXcR2SIadA5NSWdTO7g+8Qq9JsOWaSH0agxF5hQxsyBfPip1UsqUsWWV2BZk2oeCg7zlRJgPiL6Oa4h73vEnr0BQ==
+     procedure_id : 1449464446890477470
+     type_code : 15
+     code : |1-
+      // Summary: Sends a message for taking contact
+      // Syntax:
+      //[ <Result> = ] SendContactMessage (<sCustomerEmail> is string, <sHTMLMessage> is string)
+      //
+      // Parameters:
+      //	sCustomerEmail (ANSI string): Email of the customer
+      //	sHTMLMessage (ANSI string): Text of message
+      // Return value:
+      // 	boolean: True if the message was successfully sent, False otherwise
+      //
+      //// Automatic process of exceptions:   run CASE EXCEPTION:
+      //
+      
+      procedure SendContactMessage(sCustomerEmail is string, sHTMLMessage is string)
+      
+      // Local variables
+      sRecipient		is string
+      sSender			is string
+      
+      // Read the configuration
+      gstConfig_SMTP 	= SET_SITECONFIG.ReadSMTPConfiguration()
+      sRecipient	= SET_SITECONFIG.ReadRecipientEmailAddress()
+      sSender		= SET_SITECONFIG.ReadSenderEmailAddress()
+      
+      // Reinitialize the variables 
+      EmailReset()
+      
+      // Start the SMTP session
+      if StartSMTPSession(gstConfig_SMTP) = False then return False
+      
+      // Fill the structure
+      Email.NbRecipient 	= 2
+      Email.Sender 		= sSender
+      Email.Recipient[1]	= sRecipient
+      Email.Recipient[2]	= sCustomerEmail
+      Email.Subject 			= <§@1077f1ad010b22630000§>
+      Email.HTML				= sHTMLMessage
+      
+      // Send the message
+      if EmailSendMessage(gstConfig_SMTP.sUserLogin) = False then 
+      	AddError("The message was not sent",ErrorInfo())
+      	return False
+      end
+      
+      // Close the POP3 session
+      EmailCloseSession(gstConfig_SMTP.sUserLogin)	
+      
+      // The sending is successfully performed by default
+      return True
+      
+      case exception:
+      AddError("Exception detected",ExceptionInfo())
+      
+      // Close the SMTP session
+      EmailCloseSession(gstConfig_SMTP.sUserLogin)	
+      
+      // Message not sent
+      return False
+     type : 458752
+  procedure_templates : []
+  property_templates : []
+ code_parameters :
+  internal_properties : CAAAAAgAAACVGQgYbalU7DKC3oH4ItDrjtcTHXXV/EuH8q0IbhyQlw==
+  original_name : COL_SansNom1
+resources :
+ string_res :
+  identifier : 0x1077f1ad010b2263
+  internal_properties : CAAAAAgAAACm76HWfKGWp33VjXInA4cRlqArlgTTA862QGt72W2ld5Y=
+  strings :
+   -
+     text :
+      en-GB : Contact form from the Internet site
+     index : 0
+custom_note :
+ internal_properties : CAAAAAgAAABtB9HWVzrXO2+4NDRVK0vmzaNKrCKqH1DBX30lMmGZ

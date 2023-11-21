@@ -1,0 +1,226 @@
+#To edit and compare internal_properties, use WINDEV integrated tools.
+#Internal properties refer to the properties of controls in windows, reports, etc.
+info :
+ name : TPLC_GPU_WB_Login
+ major_version : 28
+ minor_version : 0
+ type : 65543
+ description : ""
+ subtype : 8192
+page :
+ name : TPLC_GPU_WB_Login
+ identifier : 0x241d884f7f5e51d6
+ internal_properties : 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
+ properties : {}
+ controls :
+  -
+    name : TPLC_GPU_WB_Login
+    identifier : 0x241d884f7f5f51d6
+    internal_properties : CAAAAAgAAACcQZB2TcC+sLaNlJtmrl8JMjdPppBvlpqENu/I/zteEpdnXb8w1xhqDY0nXR9S8TCFN9kDVf1AHK3N4ZbD4dFbqQrAhX/TiBzhIN+sB1q2DkGZ6qVCzfBmVvCFS2Ny/FdqfwdgSNZKmG0HGB9Pf2JoiiHGXpwpA1q8P1ZWT8ccqv2jektAs0ALvma7jGRpwdHQ0eaWprsoe/YxYu5VvtrKJOPKrlXigFpa71GNrsaWE8c9IS34Hmt3+E8jvFeuGqEBF7gYgmDIamtPHr2mV4bdCJa6HK8ZyF+Qtbqa+Z/fREwGwini1bX6idobuCH2b6VwXfMKKnbxW/ihyVXlQLGMcouN8hHqanYnQ8izrKsf4g1YfJsjV7LjTJjp9x11rsDrEycihLPsmZwVy/ykdauaw7Oao4igZt6mxqBNw65ED7b9XHWOy6tcTEnyw46Qh2HYxaNHYiPXTG57YlMYJvXRBeET6Q+bBvQMJkzC8NYq2yZ6OkZX71z/zuykMLlLHrHi1Fa0CvV1Gup4SKcaTX1FC+04QvFure6TDAx58e50WsP0xrSHhofMD/kGLXQNdm2FKeK0EE7BeLDpBXPPEt77FPegAaJ55/5RbDoEF+G/FH3A5BZJe2sG/+1WfHAGs7fdnmYBc4UJqRvNZxRxan/7GsM6j64/+wXrUCLFGC/8pp8moZ8qY00qKD7B/7KNirZvecpMdoorbx8/Fz2mTrkJXgBq2Ul/WId5JME8bzzpwS3rnJ+uZiWZDZUIyPs3sLAQ/8mMP3XzYEh/Ej6jzt97oaRnL36RF74pKf+TsWO8wYYlywA4LBijB1RfUJlnh1C6rK/XFTyApSOP3NodI3VUF+3M7jHbG2F5SzXtcDCfcZA=
+    properties :
+     width : 97
+     height : 40
+    controls :
+     -
+       name : LINK_Log_in
+       identifier : 0x241d884f7f6051d6
+       internal_properties : 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
+       properties :
+        x : 6
+        y : 6
+        width : 85
+        height : 21
+       type : 16
+       code_elements :
+        type_code : 47
+        alias : C1
+        p_codes :
+         -
+           code : |1-
+            
+           type : 851980
+         -
+           internal_properties : CAAAAAgAAAAukLAdLX9R6iyZ+6Nk894cSfax+eN7wWFciiWXLJG2JJGqhTww2uYsLZdOitzVaw5fQUS7C4RNl93StAMwKX36yAibD/lwODHpiqHDhvxZIoKJgNssFdHpYMWMuw1NHEZ4A8hNdxTj+Uyp+srw5borrwnTAFHB5j4fDuZ6pkKGzatPp7jfBcVFb73qtOjQPhNNJxvcG/8TcD3dd0Y33KVVcbEgKd4zh0nzZEuQsX6CUtyX469+V+cjMrpOuSXEilzutEUP+OkwegRHO4dHYkK/ZHmlpkjkAw8jbf4a0381BTkqrysNHCElDM0kR3JDlK11h4lhP3OV7vAeTQpHR1k0cDf0orkTTNngaXJNzCDQ9ZEQiEHwe3888CQu
+           code : |1+
+            // activates the SSL if it is not enabled
+            if bMustActivateSSL() then
+            	SSLActive(True)	
+            end
+           type : 851998
+           role : N
+         -
+           internal_properties : CAAAAAgAAAAbUbshpY0HFzos9eSOQ+XeCZmtxqZZrG58A2HCnw5radoA0NvwIG8c33rVAcgxg9E1QmhcsxB7/93kRXEgQTEJFUPsUicTM1WvUVuYWp/z55gkDTzi/Q==
+           code : |1+
+            // if a user is currently connected
+            if bCurrentConnection() then
+            	// disconnects the user
+            	gpwDisconnectUser()
+            	// closes all the pages and re-opens the current page with the rights of a non-connected user (guest)
+            	PageUse(MyPage.Name)
+            	
+            // open login page
+            else
+            	bBaaSMode is boolean = (gpwMode() = gpwModeBaaS)
+            	if InAWPMode() then
+            		PageDisplay(PAGE_GPU_WB_AWP_Login,  bBaaSMode, True, MyPage.Name)
+            	else
+            		PageDisplay(PAGE_GPU_WB_Login,  bBaaSMode, True, True)
+            	end
+            end
+           type : 851984
+         -
+           type : 1310736
+           enabled : false
+         -
+           code : |1-
+            
+           type : 852149
+           role : N
+    type : 42
+    code_elements :
+     type_code : 92
+     alias : C2
+     p_codes :
+      -
+        code : |1+
+         // Adapts the caption
+         AdaptConnectionCaption()
+        type : 851980
+      -
+        type : 852298
+        role : N
+      -
+        type : 851999
+        role : N
+      -
+        type : 852227
+        enabled : false
+      -
+        type : 1310979
+        enabled : false
+      -
+        type : 852228
+        role : N
+        enabled : false
+ type : 1
+ languages :
+  - en-GB
+ code_elements :
+  type_code : 91
+  p_codes :
+   -
+     type : 852298
+     role : N
+   -
+     type : 851999
+     role : N
+   -
+     type : 852000
+     role : N
+   -
+     internal_properties : CAAAAAgAAAC8gmh+MC4QrU0utgNBfl0Ba/jqg1LK+Dwp8MhpUhqrFXKYnYkcdsFAaHOY6ObpQ/xfKfSxjrQterWfXIxYE+XU8eTa3dgHHYih6pD5FI+viG7ChbqMzBs=
+     type : 852167
+   -
+     type : 852169
+     role : N
+   -
+     type : 852225
+     role : N
+   -
+     internal_properties : CAAAAAgAAAC8gmh+MC4QrU0utgNBfl0Ba/jqg1LK+Dwp8MhpUhqrFXKYnYkcdsFAaHOY6ObpQ/xfKfSxjrQterWfXIxYE+XU8eTa3dgHHYih6pD5FI+viG7ChbqMzBs=
+     type : 852227
+   -
+     type : 1310979
+     enabled : false
+   -
+     type : 852228
+     role : N
+  procedures :
+   -
+     name : bMustActivateSSL
+     internal_properties : CAAAAAgAAAC0TaGuYi2PqOQmiC1YmXJbMUTnjPWO9mhkQd3KIBH1rSc/lp1PMClvZtdu4BMhj7h3XT0qh3VDLEy3sw==
+     procedure_id : 1449464528562377174
+     type_code : 14
+     code : |1+
+      // Summary: Indicates whether the SSL mode must be enabled
+      procedure bMustActivateSSL()
+      
+      // if the SSL must not be enabled
+      if SET_GPU_CNT.gbActivateSSL=False then
+      	return False
+      end
+      
+      // No: if we are in SSL already
+      extern location
+      if location.protocol = "https" then
+      	return False
+      end
+      
+      // NO: If the configuration does not require it
+      // @@@ Always for the moment
+      return True
+     type : 458752
+     role : N
+   -
+     name : bCurrentConnection
+     procedure_id : 1449464528562442710
+     type_code : 14
+     code : |1+
+      // Summary: Find out whether a user is currently connected
+      procedure bCurrentConnection()
+      
+      // retrieve the connected user
+      sUsername is string UNICODE=gpwGetUserInfo(gpwInfoLogin)
+      
+      // if no user is connected yet
+      if sUsername="" _or_ sUsername=gpwVisitor then
+      	return False
+      end
+      
+      // if a user is currently connected
+      return True
+     type : 458752
+   -
+     name : AdaptConnectionCaption
+     procedure_id : 1449464528562508246
+     type_code : 14
+     code : |1+
+      // Summary: Adapts the caption of the Connection button
+      procedure AdaptConnectionCaption()
+      
+      // if a user is currently connected
+      if bCurrentConnection() then
+      	// proposes the disconnection
+      	LINK_Log_in.Caption=<§$0000§>
+      	
+      	// if no user is connected yet
+      else
+      	// proposes the connection
+      	LINK_Log_in.Caption=<§$0001§>
+      end
+      
+     type : 458752
+  procedure_templates : []
+  property_templates : []
+ code_parameters :
+  internal_properties : CAAAAAgAAACVGQgYbalU7DKC3oH4ItDrjtcTHXXV/EuH8q0IbhyQlw==
+  original_name : MDLC_SansNom1
+resources :
+ string_res :
+  identifier : 0x1fd7771f220e00ba
+  internal_properties : CAAAAAgAAACm76HWfKGWp33VjXInA4cRlqArlgTTA862QGt72W2ld5Y=
+  strings :
+   -
+     text :
+      en-GB : Log out
+     index : 0
+   -
+     text :
+      en-GB : Log in
+     index : 1
+webification :
+ internal_properties : CAAAAAgAAACYzxT95H3qP7nIys4LqA==
+custom_note :
+ internal_properties : CAAAAAgAAAC68/W0/adbG0nFCRhrE42B5HRnbDzVHaz86sSQyxlBk7I=
+rad :
+ internal_properties : CAAAAAgAAABoAN7PLpwJW3EiA7WVZdCA5EwrCA1rvutcDHooMWKe
